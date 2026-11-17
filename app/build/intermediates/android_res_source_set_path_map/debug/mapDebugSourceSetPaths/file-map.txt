@@ -1,0 +1,8 @@
+com.nightcity.launcher.app-pngs-0 /mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/build/generated/res/pngs/debug
+com.nightcity.launcher.app-updated_navigation_xml-1 /mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/build/generated/updated_navigation_xml/debug
+com.nightcity.launcher.app-packageDebugResources-2 /mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+com.nightcity.launcher.app-packageDebugResources-3 /mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+com.nightcity.launcher.app-debug-4 /mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/build/intermediates/merged_res/debug/mergeDebugResources
+com.nightcity.launcher.app-debug-5 /mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/debug/res
+com.nightcity.launcher.app-main-6 /mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/res
+gradleHome-0 /mnt/arquivos/Dev/Android/gradle

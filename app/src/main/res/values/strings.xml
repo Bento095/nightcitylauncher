@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Night City OS</string>
+    <string name="a11y_label">Night City OS: botões de navegação</string>
+    <string name="a11y_desc">Mostra os botões Voltar, Início e Recentes ao deslizar a partir da borda da tela, por cima de qualquer app. O serviço não lê o conteúdo da tela.</string>
+</resources>

@@ -1,0 +1,6 @@
+int drawable ic_launcher 0x0
+int string a11y_desc 0x0
+int string a11y_label 0x0
+int string app_name 0x0
+int style Theme_NightCity 0x0
+int xml accessibility_service_config 0x0

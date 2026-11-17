@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.nightcity.launcher.app-debug-33:/xml_accessibility_service_config.xml.flat",
+        "source": "com.nightcity.launcher.app-main-35:/xml/accessibility_service_config.xml"
+    },
+    {
+        "merged": "com.nightcity.launcher.app-debug-33:/drawable_ic_launcher.xml.flat",
+        "source": "com.nightcity.launcher.app-main-35:/drawable/ic_launcher.xml"
+    }
+]
