@@ -74,4 +74,49 @@ class Prefs(ctx: Context) {
     fun saveDaemons(list: List<String?>) {
         sp.edit().putString("nc_daemons", list.joinToString(",") { it ?: "" }).apply()
     }
+
+    // --- notificações e filtros
+    /** "compact" | "detail" | "hidden" */
+    var notifStyle: String
+        get() = sp.getString("notifStyle", "detail") ?: "detail"
+        set(v) { sp.edit().putString("notifStyle", v).apply() }
+
+    var notifMax: Int
+        get() = sp.getInt("notifMax", 5)
+        set(v) { sp.edit().putInt("notifMax", v).apply() }
+
+    /** "off" | "mono" | "pal" | "amber" | "dim" */
+    var filterMode: String
+        get() = sp.getString("filterMode", "off") ?: "off"
+        set(v) { sp.edit().putString("filterMode", v).apply() }
+
+    var filterLevel: Int
+        get() = sp.getInt("filterLevel", 40)
+        set(v) { sp.edit().putInt("filterLevel", v).apply() }
+
+    // --- paletas criadas pelo usuário: "chave|nome|y|c|r|bg|bg2|pn|dim|off;..." (cores em hexadecimal)
+    fun customPalettes(): List<NcPalette> {
+        val raw = sp.getString("customPalettes", "") ?: ""
+        if (raw.isBlank()) return emptyList()
+        val out = ArrayList<NcPalette>()
+        for (item in raw.split(";")) {
+            val f = item.split("|")
+            if (f.size != 10) continue
+            val v = ArrayList<Long>()
+            for (h in f.drop(2)) {
+                val x = parseHex(h) ?: break
+                v.add(x)
+            }
+            if (v.size == 8) out.add(paletteOf(f[0], f[1], v))
+        }
+        return out
+    }
+
+    fun saveCustomPalettes(list: List<NcPalette>) {
+        val raw = list.joinToString(";") { p -> p.key + "|" + p.name + "|" + p.hexList().joinToString("|") }
+        sp.edit().putString("customPalettes", raw).apply()
+    }
+
+    /** Paleta em uso (de fábrica ou criada). Usado também pelo serviço dos botões. */
+    fun currentPalette(): NcPalette = paletteFrom(palKey, customPalettes())
 }

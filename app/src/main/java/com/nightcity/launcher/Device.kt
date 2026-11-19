@@ -234,3 +234,20 @@ class DeviceState(private val ctx: Context) {
         }
     }
 }
+
+// ---------------------------------------------------------------- energia
+
+/** Só vale depois de: adb shell pm grant com.nightcity.launcher android.permission.WRITE_SECURE_SETTINGS */
+fun canWriteSecure(ctx: Context): Boolean =
+    ContextCompat.checkSelfPermission(ctx, "android.permission.WRITE_SECURE_SETTINGS") ==
+        PackageManager.PERMISSION_GRANTED
+
+/** Liga/desliga a economia de bateria do Android. Devolve false se não tem permissão ou o sistema recusou. */
+fun setBatterySaver(ctx: Context, on: Boolean): Boolean {
+    if (!canWriteSecure(ctx)) return false
+    return try {
+        Settings.Global.putInt(ctx.contentResolver, "low_power", if (on) 1 else 0)
+    } catch (e: Exception) {
+        false
+    }
+}

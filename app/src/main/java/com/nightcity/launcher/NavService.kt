@@ -6,13 +6,16 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.provider.Settings
 import android.view.Gravity
 import android.view.MotionEvent
@@ -27,6 +30,40 @@ fun navServiceEnabled(ctx: Context): Boolean {
         ?: return false
     val me = ComponentName(ctx, NavService::class.java).flattenToString()
     return s.split(':').any { it.equals(me, ignoreCase = true) }
+}
+
+/** True enquanto o serviço está realmente em execução (cai para false se o processo for encerrado). */
+object NavState {
+    @Volatile
+    var running = false
+}
+
+/**
+ * Reativa o serviço quando ele está marcado como ligado nas configurações mas parou de rodar
+ * (por exemplo, depois de limpar os apps recentes). Só funciona com a permissão opcional
+ * WRITE_SECURE_SETTINGS concedida por adb. Devolve false se não pôde tentar.
+ */
+fun reviveNavService(ctx: Context): Boolean {
+    if (!canWriteSecure(ctx)) return false
+    return try {
+        val cr = ctx.contentResolver
+        val me = ComponentName(ctx, NavService::class.java).flattenToString()
+        val cur = Settings.Secure.getString(cr, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
+        val base = cur.split(':').filter { it.isNotBlank() && !it.equals(me, ignoreCase = true) }.joinToString(":")
+        Settings.Secure.putString(cr, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, base)
+        Handler(Looper.getMainLooper()).postDelayed({
+            try {
+                val full = if (base.isEmpty()) me else "$base:$me"
+                Settings.Secure.putString(cr, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, full)
+                Settings.Secure.putInt(cr, Settings.Secure.ACCESSIBILITY_ENABLED, 1)
+            } catch (e: Exception) {
+                Log.w("NcNav", "falha ao religar o serviço", e)
+            }
+        }, 400)
+        true
+    } catch (e: Exception) {
+        false
+    }
 }
 
 fun safeStart(ctx: Context, i: Intent) {
@@ -46,43 +83,138 @@ class NavService : AccessibilityService() {
     private val h = Handler(Looper.getMainLooper())
     private var trigger: View? = null
     private var bar: View? = null
+    private var filterView: View? = null
     private val hideRun = Runnable { hideBar() }
-    private val keys = setOf("navPos", "palKey", "guide", "edgeInset")
+    private val navKeys = setOf("navPos", "palKey", "guide", "edgeInset")
+    private val filterKeys = setOf("filterMode", "filterLevel", "palKey")
     private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key != null && key in keys) h.post { install() }
+        if (key != null && key in navKeys) h.post { install() }
+        if (key != null && key in filterKeys) h.post { applyFilter() }
     }
 
     private var sx = 0f
     private var sy = 0f
     private var armed = false
+    private var lastInstall = 0L
+
+    // vigia: se a faixa de gesto sumir da tela, recria
+    private val watchdog = object : Runnable {
+        override fun run() {
+            ensureTrigger()
+            ensureFilter()
+            h.postDelayed(this, 4000)
+        }
+    }
+
+    private fun ensureTrigger() {
+        if (!::wm.isInitialized || !::prefs.isInitialized) return
+        if (trigger?.isAttachedToWindow == true) return
+        if (System.currentTimeMillis() - lastInstall < 1500) return
+        Log.d("NcNav", "faixa de gesto ausente: recriando")
+        install()
+    }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+
+    /** Topo da janela para o CENTRO ficar a 45% da altura (segundo terço, um pouco acima do meio). */
+    private fun sideTop(h: Int): Int = (resources.displayMetrics.heightPixels * 0.45f).toInt() - h / 2
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
         prefs = Prefs(this)
         prefs.sp.registerOnSharedPreferenceChangeListener(listener)
+        NavState.running = true
+        Log.d("NcNav", "serviço conectado")
+        applyFilter()
         install()
+        h.removeCallbacks(watchdog)
+        h.postDelayed(watchdog, 4000)
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) { }
+    // qualquer troca de janela (abrir/fechar recentes, voltar ao início...) confere a faixa de gesto
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        ensureTrigger()
+    }
 
     override fun onInterrupt() { }
 
+    // mudança de orientação/densidade: as posições dependem do tamanho da tela
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (::prefs.isInitialized && ::wm.isInitialized) h.post { install() }
+    }
+
     override fun onUnbind(intent: Intent?): Boolean {
+        Log.d("NcNav", "serviço desconectado (unbind)")
         teardown()
         return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
+        Log.d("NcNav", "serviço destruído")
         teardown()
         super.onDestroy()
     }
 
     private fun teardown() {
+        NavState.running = false
+        h.removeCallbacks(watchdog)
         try { prefs.sp.unregisterOnSharedPreferenceChangeListener(listener) } catch (e: Exception) { }
         remove()
+        removeFilter()
+    }
+
+    // ---------------------------------------------------------------- filtro de tela
+
+    /** Aplica o modo escolhido em Config > Filtros (cobertura colorida por cima dos outros apps). */
+    private fun applyFilter() {
+        if (!::wm.isInitialized || !::prefs.isInitialized) return
+        val spec = filterSpec(this, prefs)
+        if (spec == null) {
+            removeFilter()
+            return
+        }
+        val a = (spec.alpha * 255f).toInt().coerceIn(0, 255)
+        val c = (spec.color and 0x00FFFFFF) or (a shl 24)
+        val cur = filterView
+        if (cur != null && cur.isAttachedToWindow) {
+            cur.setBackgroundColor(c)
+            return
+        }
+        removeFilter()
+        val v = View(this)
+        v.setBackgroundColor(c)
+        val lp = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT,
+        )
+        if (Build.VERSION.SDK_INT >= 28) {
+            lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+        try {
+            wm.addView(v, lp)
+            filterView = v
+        } catch (e: Exception) {
+            Log.w("NcNav", "não foi possível desenhar o filtro", e)
+        }
+    }
+
+    private fun removeFilter() {
+        filterView?.let { try { wm.removeView(it) } catch (e: Exception) { } }
+        filterView = null
+    }
+
+    private fun ensureFilter() {
+        if (!::wm.isInitialized || !::prefs.isInitialized) return
+        val need = filterSpec(this, prefs) != null
+        if (need && filterView?.isAttachedToWindow != true) applyFilter()
     }
 
     private fun remove() {
@@ -99,7 +231,7 @@ class NavService : AccessibilityService() {
 
     private fun install() {
         remove()
-        val nc = paletteByKey(prefs.palKey)
+        val nc = prefs.currentPalette()
         val pos = prefs.navPos
         val inset = dp(prefs.edgeInset)
         val v = EdgeView(this, nc.y.toArgb(), prefs.guide, pos)
@@ -110,14 +242,17 @@ class NavService : AccessibilityService() {
             w, hh, WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY, flags, PixelFormat.TRANSLUCENT,
         )
         when (pos) {
-            "l" -> { lp.gravity = Gravity.START or Gravity.CENTER_VERTICAL; lp.x = inset }
-            "r" -> { lp.gravity = Gravity.END or Gravity.CENTER_VERTICAL; lp.x = inset }
+            "l" -> { lp.gravity = Gravity.START or Gravity.TOP; lp.x = inset; lp.y = sideTop(hh) }
+            "r" -> { lp.gravity = Gravity.END or Gravity.TOP; lp.x = inset; lp.y = sideTop(hh) }
             else -> { lp.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL; lp.y = inset }
         }
         try {
             wm.addView(v, lp)
             trigger = v
-        } catch (e: Exception) { }
+            lastInstall = System.currentTimeMillis()
+        } catch (e: Exception) {
+            Log.w("NcNav", "não foi possível desenhar a faixa de gesto", e)
+        }
     }
 
     private fun onTouch(e: MotionEvent): Boolean {
@@ -157,7 +292,7 @@ class NavService : AccessibilityService() {
             keepBar()
             return
         }
-        val nc = paletteByKey(prefs.palKey)
+        val nc = prefs.currentPalette()
         val pos = prefs.navPos
         val inset = dp(prefs.edgeInset)
         val ll = LinearLayout(this).apply {
@@ -189,8 +324,8 @@ class NavService : AccessibilityService() {
             PixelFormat.TRANSLUCENT,
         )
         when (pos) {
-            "l" -> { lp.gravity = Gravity.START or Gravity.CENTER_VERTICAL; lp.x = inset + dp(12) }
-            "r" -> { lp.gravity = Gravity.END or Gravity.CENTER_VERTICAL; lp.x = inset + dp(12) }
+            "l" -> { lp.gravity = Gravity.START or Gravity.TOP; lp.x = inset + dp(12); lp.y = sideTop(dp(164)) }
+            "r" -> { lp.gravity = Gravity.END or Gravity.TOP; lp.x = inset + dp(12); lp.y = sideTop(dp(164)) }
             else -> { lp.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL; lp.y = inset + dp(40) }
         }
         try {

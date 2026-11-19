@@ -6,15 +6,11 @@ import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
-import android.service.notification.NotificationListenerService
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationManagerCompat
-
-/** Serviço vazio: só existe para o usuário poder liberar o "Acesso a notificações", exigido para ler a mídia. */
-class MediaListenerService : NotificationListenerService()
 
 class MediaState(private val ctx: Context) {
     var hasAccess by mutableStateOf(false)

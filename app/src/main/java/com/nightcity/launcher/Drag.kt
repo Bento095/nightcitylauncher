@@ -17,7 +17,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 
 /** Quantos apps cabem na gaveta DAEMONS. */
-const val DAEMON_SLOTS = 6
+const val DAEMON_SLOTS = 8
 
 /** from = -1 vem da gaveta de apps; 0..3 vem da dock; 10..15 vem da gaveta DAEMONS (10 + posição). */
 class DragInfo(val pkg: String, val from: Int, val pos: Offset)

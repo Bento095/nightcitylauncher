@@ -5,6 +5,8 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -42,9 +44,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -68,7 +72,7 @@ private fun fmt(ms: Long): String {
 }
 
 @Composable
-fun GlitchClock(onLongPress: () -> Unit) {
+fun GlitchClock(onClick: () -> Unit, onLongPress: () -> Unit) {
     val nc = LocalNc.current
     val time by produceState(timeNow()) {
         while (true) {
@@ -87,7 +91,7 @@ fun GlitchClock(onLongPress: () -> Unit) {
             gl = 0
         }
     }
-    Box(Modifier.pointerInput(Unit) { detectTapGestures(onLongPress = { onLongPress() }) }) {
+    Box(Modifier.pointerInput(Unit) { detectTapGestures(onTap = { onClick() }, onLongPress = { onLongPress() }) }) {
         if (gl != 0) {
             Tx(time, nc.r, 34, true, modifier = Modifier.offset(x = (-gl).dp))
             Tx(time, nc.c, 34, true, modifier = Modifier.offset(x = gl.dp))
@@ -190,32 +194,52 @@ fun HomeScreen(
     ramHist: List<Int>,
     onOpen: (String) -> Unit,
     onSettings: () -> Unit,
+    onClock: () -> Unit,
     onMediaAccess: () -> Unit,
     onSwipeUp: () -> Unit,
     daemons: List<String?>,
     apps: Map<String, AppInfo>,
     host: DragHost,
     scroll: ScrollState,
+    onCalendar: () -> Unit,
+    onMaps: () -> Unit,
+    onPower: () -> Unit,
+    notifs: List<NotifItem>,
+    notifStyle: String,
+    notifMax: Int,
+    onNotifOpen: (NotifItem) -> Unit,
+    onNotifDismiss: (String) -> Unit,
+    onNotifClear: () -> Unit,
 ) {
     val nc = LocalNc.current
     var wxOpen by remember { mutableStateOf(false) }
 
-    // Abre a gaveta de apps ao arrastar para cima quando NÃO dá mais para rolar
-    // (no fim da lista, ou se tudo cabe na tela). Rolar normalmente continua rolando.
+    // Abrir a gaveta de apps: só vale puxando para cima a PARTIR DOS 10% INFERIORES da tela.
+    // Em qualquer outro ponto, arrastar apenas rola o conteúdo.
     val swipeUp by rememberUpdatedState(onSwipeUp)
+    val flag = remember { SwipeFlag() }
+    val thresholdPx = with(LocalDensity.current) { 72.dp.toPx() }
     val conn = remember {
         object : NestedScrollConnection {
             var acc = 0f
-            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                if (source == NestedScrollSource.UserInput) {
-                    if (available.y < 0f) acc += available.y else if (available.y > 0f) acc = 0f
+
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (source != NestedScrollSource.UserInput || !flag.bottom) return Offset.Zero
+                if (available.y < 0f) {
+                    acc += available.y
+                    return Offset(0f, available.y) // segura o conteúdo parado enquanto puxa a gaveta
                 }
+                acc = (acc + available.y).coerceAtMost(0f)
                 return Offset.Zero
             }
 
-            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                if (acc < -100f) swipeUp()
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                val open = flag.bottom && acc < -thresholdPx
                 acc = 0f
+                if (open) {
+                    swipeUp()
+                    return available
+                }
                 return Velocity.Zero
             }
         }
@@ -224,20 +248,24 @@ fun HomeScreen(
     Column(
         Modifier
             .fillMaxSize()
+            .pointerInput(Unit) {
+                // só observa onde o dedo encostou (não consome nada)
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    flag.bottom = down.position.y > size.height * 0.90f
+                }
+            }
             .systemBarsPadding()
-            .nestedScroll(conn)
-            .verticalScroll(scroll)
-            .padding(start = 11.dp, end = 11.dp, top = 8.dp, bottom = 86.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(start = 11.dp, end = 11.dp, top = 8.dp),
     ) {
-        // --- topo: relógio, ícones de status (somente ativos), bateria, rede
+        // --- topo FIXO (não rola)
         Column {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom,
             ) {
-                GlitchClock(onLongPress = onSettings)
+                GlitchClock(onClick = onClock, onLongPress = onSettings)
                 Column(horizontalAlignment = Alignment.End) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -262,156 +290,232 @@ fun HomeScreen(
             Spacer(Modifier.height(4.dp))
             Box(Modifier.fillMaxWidth().height(2.dp).background(nc.y))
         }
+        Spacer(Modifier.height(8.dp))
 
-        // --- cartão de mídia
-        MediaCard(media, onMediaAccess)
-
-        // --- previsão do tempo
-        Row(
+        // --- tudo abaixo rola POR BAIXO do topo fixo
+        Column(
             Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .clip(CutShape(12.dp))
-                .background(nc.bg)
-                .border(1.dp, nc.c, CutShape(12.dp))
-                .clickable { wxOpen = !wxOpen }
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+                .nestedScroll(conn)
+                .verticalScroll(scroll)
+                .padding(bottom = 86.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Tx("BREACH PROTOCOL // PREVISÃO", nc.c, 14, true, spacing = 2f)
-            val right = if (wx != null) "%+d°C %s %s %d%%".format(wx.temp, wx.glyph, wx.text, wx.rain) else wxMsg
-            Tx(right, nc.c, 11, mono = true)
-        }
-        if (wxOpen && wx != null) {
+
+            // --- cartão de mídia
+            MediaCard(media, onMediaAccess)
+
+            // --- previsão do tempo
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .background(Color.Black)
-                    .border(1.dp, nc.c.copy(alpha = 0.33f))
-                    .padding(6.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                    .clip(CutShape(12.dp))
+                    .background(nc.bg)
+                    .border(1.dp, nc.c, CutShape(12.dp))
+                    .clickable { wxOpen = !wxOpen }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                wx.slots.forEach { s ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Tx("%+d°".format(s.temp), nc.y, 13, mono = true)
-                        Tx(s.label + " " + s.glyph, nc.c, 10, mono = true)
-                    }
-                }
+                Tx("BREACH PROTOCOL // PREVISÃO", nc.c, 14, true, spacing = 2f)
+                val right = if (wx != null) "%+d°C %s %s %d%%".format(wx.temp, wx.glyph, wx.text, wx.rain) else wxMsg
+                Tx(right, nc.c, 11, mono = true)
             }
-        }
-
-        // --- faixa de data, Bluetooth, GPS (só mudam de cor)
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .border(1.dp, nc.y.copy(alpha = 0.27f))
-                .padding(horizontal = 7.dp, vertical = 3.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Tx(dateLine(), nc.dim, 10, mono = true)
-            Tx("BLUETOOTH", if (device.bt) nc.c else nc.off, 10, mono = true)
-            Tx("GPS", if (device.gps) nc.c else nc.off, 10, mono = true)
-        }
-
-        // --- quickhacks = apps recentes (até 10, empurra o diagnóstico)
-        Panel("QUICKHACKS", "RECENTES") {
-            if (recents.isEmpty()) {
-                Tx("> nenhum app recente", nc.dim, 12, mono = true, modifier = Modifier.padding(4.dp))
-            }
-            recents.take(10).forEachIndexed { i, (app, t) ->
-                val indexLabel = (i + 1).toString().padStart(2, '0')
+            if (wxOpen && wx != null) {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .then(if (i == 0) Modifier.background(nc.y.copy(alpha = 0.2f)) else Modifier)
-                        .clickable { onOpen(app.pkg) }
-                        .padding(horizontal = 6.dp, vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .background(Color.Black)
+                        .border(1.dp, nc.c.copy(alpha = 0.33f))
+                        .padding(6.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    Tx(indexLabel, if (i == 0) nc.r else nc.dim, 11, mono = true, modifier = Modifier.width(24.dp))
-                    Box(Modifier.weight(1f)) {
-                        Tx(app.label.uppercase(), if (i == 0) Color.White else nc.y, 15, true, spacing = 1f)
-                    }
-                    Box(Modifier.border(1.dp, nc.c).padding(horizontal = 5.dp)) {
-                        Tx(ago(t), nc.c, 11, mono = true)
-                    }
-                }
-            }
-        }
-
-        // --- diagnóstico
-        Panel("DIAGNÓSTICO", android.os.Build.MODEL.uppercase()) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Stat("RAM", "${device.ramPct}%", device.ramPct, device.ramPct > 85, Modifier.weight(1f))
-                Stat("ARMAZ.", "${device.diskPct}%", device.diskPct, device.diskPct > 90, Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(5.dp))
-            val tc = device.battTemp / 10
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Stat("TEMP", "${tc}°C", tc * 100 / 50, tc > 40, Modifier.weight(1f))
-                Stat("BAT", "${device.battLevel}%", device.battLevel, device.battLevel <= 20, Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(4.dp))
-            Spark(ramHist)
-        }
-
-        // --- DAEMONS: até 6 apps fixados por arrastar e soltar (mesmo estilo dos quickhacks)
-        val dHover = host.info?.let { host.daemonSlotAt(it.pos) } ?: -1
-        val dragFrom = host.info?.from ?: -2
-        val filled = daemons.count { it != null }
-        Panel("DAEMONS", "FIXADOS $filled/$DAEMON_SLOTS") {
-            for (i in 0 until DAEMON_SLOTS) {
-                val app = daemons.getOrNull(i)?.let { apps[it] }
-                val hv = dHover == i
-                val fg = if (hv) Color.Black else nc.y
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .onGloballyPositioned { host.daemonRows[i] = it }
-                        .then(if (hv) Modifier.background(nc.y) else Modifier)
-                        .alpha(if (dragFrom == 10 + i) 0.3f else 1f)
-                        .then(
-                            if (app != null) {
-                                Modifier
-                                    .dragSource(app.pkg, 10 + i, host)
-                                    .clickable { if (!host.blockClicks) onOpen(app.pkg) }
-                            } else {
-                                Modifier
-                            }
-                        )
-                        .padding(horizontal = 6.dp, vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Tx(
-                        (i + 1).toString().padStart(2, '0'),
-                        if (hv) Color.Black else nc.dim,
-                        11,
-                        mono = true,
-                        modifier = Modifier.width(24.dp),
-                    )
-                    Box(Modifier.weight(1f)) {
-                        Tx(
-                            app?.label?.uppercase() ?: "[ LIVRE ]",
-                            if (app != null) fg else if (hv) Color.Black else nc.off,
-                            15,
-                            true,
-                            spacing = 1f,
-                        )
-                    }
-                    if (app != null) {
-                        Box(Modifier.border(1.dp, if (hv) Color.Black else nc.c).padding(horizontal = 5.dp)) {
-                            Tx("RUN", if (hv) Color.Black else nc.c, 11, mono = true)
+                    wx.slots.forEach { s ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Tx("%+d°".format(s.temp), nc.y, 13, mono = true)
+                            Tx(s.label + " " + s.glyph, nc.c, 10, mono = true)
                         }
                     }
                 }
             }
-            if (filled == 0) {
+
+            // --- notificações (formato configurável em Config)
+            NotifPanel(
+                hasAccess = media.hasAccess,
+                items = notifs,
+                style = notifStyle,
+                max = notifMax,
+                onAccess = onMediaAccess,
+                onOpen = onNotifOpen,
+                onDismiss = onNotifDismiss,
+                onClear = onNotifClear,
+            )
+
+            // --- faixa de data, Bluetooth, GPS
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, nc.y.copy(alpha = 0.27f))
+                    .padding(horizontal = 7.dp, vertical = 3.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
                 Tx(
-                    "> segure um app na gaveta e solte aqui",
+                    dateLine(),
                     nc.dim,
                     10,
                     mono = true,
-                    modifier = Modifier.padding(start = 6.dp, top = 2.dp),
+                    modifier = Modifier.clickable { onCalendar() }.padding(vertical = 2.dp),
+                )
+                Tx("BLUETOOTH", if (device.bt) nc.c else nc.off, 10, mono = true)
+                Tx("GPS", if (device.gps) nc.c else nc.off, 10, mono = true)
+            }
+
+            // --- quickhacks = apps recentes
+            Panel("QUICKHACKS", "RECENTES") {
+                if (recents.isEmpty()) {
+                    Tx("> nenhum app recente", nc.dim, 12, mono = true, modifier = Modifier.padding(4.dp))
+                }
+                recents.take(8).forEachIndexed { i, (app, t) ->
+                    val indexLabel = (i + 1).toString().padStart(2, '0')
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .then(if (i == 0) Modifier.background(nc.y.copy(alpha = 0.2f)) else Modifier)
+                            .clickable { onOpen(app.pkg) }
+                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Tx(indexLabel, if (i == 0) nc.r else nc.dim, 11, mono = true, modifier = Modifier.width(24.dp))
+                        Box(Modifier.weight(1f)) {
+                            Tx(app.label.uppercase(), if (i == 0) Color.White else nc.y, 15, true, spacing = 1f)
+                        }
+                        Box(Modifier.border(1.dp, nc.c).padding(horizontal = 5.dp)) {
+                            Tx(ago(t), nc.c, 11, mono = true)
+                        }
+                    }
+                }
+            }
+
+            // --- diagnóstico
+            Panel(
+                "DIAGNÓSTICO",
+                "ENERGIA: " + (if (device.saver) "ECONOMIA" else "NORMAL") + " ▸",
+                modifier = Modifier.clickable { onPower() },
+            ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Stat("RAM", "${device.ramPct}%", device.ramPct, device.ramPct > 85, Modifier.weight(1f))
+                    Stat("ARMAZ.", "${device.diskPct}%", device.diskPct, device.diskPct > 90, Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(5.dp))
+                val tc = device.battTemp / 10
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Stat("TEMP", "${tc}°C", tc * 100 / 50, tc > 40, Modifier.weight(1f))
+                    Stat("BAT", "${device.battLevel}%", device.battLevel, device.battLevel <= 20, Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(4.dp))
+                Spark(ramHist)
+            }
+
+            // --- DAEMONS
+            val dHover = host.info?.let { host.daemonSlotAt(it.pos) } ?: -1
+            val dragFrom = host.info?.from ?: -2
+            val filled = daemons.count { it != null }
+            Panel("DAEMONS", "FIXADOS $filled/$DAEMON_SLOTS", accent = nc.c, tagColor = nc.y) {
+                for (i in 0 until DAEMON_SLOTS) {
+                    val app = daemons.getOrNull(i)?.let { apps[it] }
+                    val hv = dHover == i
+                    val fg = if (hv) Color.Black else nc.c
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { host.daemonRows[i] = it }
+                            .then(if (hv) Modifier.background(nc.c) else Modifier)
+                            .alpha(if (dragFrom == 10 + i) 0.3f else 1f)
+                            .then(
+                                if (app != null) {
+                                    Modifier
+                                        .dragSource(app.pkg, 10 + i, host)
+                                        .clickable { if (!host.blockClicks) onOpen(app.pkg) }
+                                } else {
+                                    Modifier
+                                }
+                            )
+                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Tx(
+                            (i + 1).toString().padStart(2, '0'),
+                            if (hv) Color.Black else nc.dim,
+                            11,
+                            mono = true,
+                            modifier = Modifier.width(24.dp),
+                        )
+                        Box(Modifier.weight(1f)) {
+                            Tx(
+                                app?.label?.uppercase() ?: "[ LIVRE ]",
+                                if (app != null) fg else if (hv) Color.Black else nc.off,
+                                15,
+                                true,
+                                spacing = 1f,
+                            )
+                        }
+                        if (app != null) {
+                            Box(Modifier.border(1.dp, if (hv) Color.Black else nc.y).padding(horizontal = 5.dp)) {
+                                Tx("RUN", if (hv) Color.Black else nc.y, 11, mono = true)
+                            }
+                        }
+                    }
+                }
+                if (filled == 0) {
+                    Tx(
+                        "> segure um app na gaveta e solte aqui",
+                        nc.dim,
+                        10,
+                        mono = true,
+                        modifier = Modifier.padding(start = 6.dp, top = 2.dp),
+                    )
+                }
+            }
+
+            // --- faixa de acesso rápido: Config do Launcher e Termux (corrigido com parâmetros posicionais)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, nc.y.copy(alpha = 0.27f))
+                    .padding(horizontal = 7.dp, vertical = 3.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Tx(
+                    "[ SYS // CONFIG ]",
+                    nc.y,
+                    10,
+                    true,
+                    mono = true,
+                    modifier = Modifier
+                        .clickable { onSettings() }
+                        .padding(vertical = 2.dp)
+                )
+                Tx(
+                    "[ MAPS // NAV ]",
+                    nc.r,
+                    10,
+                    true,
+                    mono = true,
+                    modifier = Modifier
+                        .clickable { onMaps() }
+                        .padding(vertical = 2.dp)
+                )
+                Tx(
+                    "[ TERMUX // SHELL ]",
+                    nc.c,
+                    10,
+                    true,
+                    mono = true,
+                    modifier = Modifier
+                        .clickable { onOpen("com.termux") }
+                        .padding(vertical = 2.dp)
                 )
             }
         }
@@ -442,12 +546,22 @@ fun Dock(
     onApps: () -> Unit,
     onOpen: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onSwipeUp: () -> Unit = {},
 ) {
     val dragFrom = host.info?.from ?: -2
     Row(
         modifier
             .fillMaxWidth()
-            .onGloballyPositioned { host.dockBounds = it.boundsInRoot() },
+            .onGloballyPositioned { host.dockBounds = it.boundsInRoot() }
+            .pointerInput(Unit) {
+                var acc = 0f
+                detectVerticalDragGestures(
+                    onDragStart = { acc = 0f },
+                    onDragEnd = { if (acc < -120f) onSwipeUp() },
+                    onDragCancel = { },
+                    onVerticalDrag = { _, d -> acc += d },
+                )
+            },
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         DockCell(Modifier.weight(1f), "▦", "APPS", null, false, false, realIcons) { onApps() }
@@ -497,5 +611,72 @@ private fun DockCell(
             }
         }
         Tx(label.uppercase(), fg, 9, true, spacing = 1f, modifier = Modifier.padding(horizontal = 2.dp))
+    }
+}
+
+private class SwipeFlag {
+    var bottom = false
+}
+
+@Composable
+private fun NotifPanel(
+    hasAccess: Boolean,
+    items: List<NotifItem>,
+    style: String,
+    max: Int,
+    onAccess: () -> Unit,
+    onOpen: (NotifItem) -> Unit,
+    onDismiss: (String) -> Unit,
+    onClear: () -> Unit,
+) {
+    val nc = LocalNc.current
+    Panel("NOTIFICAÇÕES", if (hasAccess) "${items.size} ATIVAS" else "SEM ACESSO") {
+        if (!hasAccess) {
+            Tx(
+                "> toque para liberar o acesso a notificações",
+                nc.dim, 11, mono = true, maxLines = 2,
+                modifier = Modifier.clickable { onAccess() }.padding(4.dp),
+            )
+        } else if (items.isEmpty()) {
+            Tx("> nenhuma notificação", nc.dim, 12, mono = true, modifier = Modifier.padding(4.dp))
+        }
+        items.take(max).forEachIndexed { i, n ->
+            val hot = i == 0
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .then(if (hot) Modifier.background(nc.y.copy(alpha = 0.2f)) else Modifier)
+                    .clickable { onOpen(n) }
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f)) {
+                    when (style) {
+                        "compact" -> Tx(
+                            n.app.uppercase() + (if (n.title.isNotBlank()) " // " + n.title else ""),
+                            if (hot) Color.White else nc.y, 13, true, spacing = 1f,
+                        )
+                        "hidden" -> Tx(n.app.uppercase(), if (hot) Color.White else nc.y, 13, true, spacing = 1f)
+                        else -> Column {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Tx(n.app.uppercase(), nc.c, 10, mono = true)
+                                Tx(ago(n.time), nc.dim, 10, mono = true)
+                            }
+                            Tx(n.title.ifBlank { "(sem título)" }, if (hot) Color.White else nc.y, 14, true)
+                            if (n.text.isNotBlank()) Tx(n.text, nc.dim, 10, mono = true, maxLines = 2)
+                        }
+                    }
+                }
+                if (n.clearable) {
+                    Tx("✕", nc.c, 12, true, mono = true, modifier = Modifier.clickable { onDismiss(n.key) }.padding(horizontal = 8.dp, vertical = 2.dp))
+                }
+            }
+        }
+        if (items.size > max) {
+            Tx("+${items.size - max} ...", nc.dim, 10, mono = true, modifier = Modifier.padding(start = 6.dp))
+        }
+        if (items.size > 1) {
+            Tx("[ LIMPAR TUDO ]", nc.c, 10, true, mono = true, modifier = Modifier.clickable { onClear() }.padding(6.dp))
+        }
     }
 }

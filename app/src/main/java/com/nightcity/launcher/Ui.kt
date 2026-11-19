@@ -127,25 +127,29 @@ fun Panel(
     title: String,
     tag: String? = null,
     modifier: Modifier = Modifier,
+    accent: Color? = null,
+    tagColor: Color? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val nc = LocalNc.current
+    val a = accent ?: nc.y
+    val tc = tagColor ?: nc.c
     Box(
         modifier
             .fillMaxWidth()
             .background(nc.pn)
-            .border(1.dp, nc.y.copy(alpha = 0.33f))
+            .border(1.dp, a.copy(alpha = 0.33f))
     ) {
         Column(Modifier.padding(start = 6.dp, end = 6.dp, top = 19.dp, bottom = 6.dp), content = content)
         Box(
             Modifier
                 .align(Alignment.TopStart)
-                .background(nc.y)
+                .background(a)
                 .padding(horizontal = 8.dp, vertical = 1.dp)
         ) { Tx(title, Color.Black, 11, bold = true, spacing = 2f) }
         if (tag != null) {
             Box(Modifier.align(Alignment.TopEnd).padding(end = 7.dp, top = 2.dp)) {
-                Tx(tag, nc.c, 10, mono = true)
+                Tx(tag, tc, 10, mono = true)
             }
         }
     }

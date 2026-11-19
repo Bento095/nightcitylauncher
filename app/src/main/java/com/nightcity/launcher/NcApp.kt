@@ -1,6 +1,9 @@
 package com.nightcity.launcher
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.provider.Settings
@@ -61,7 +64,12 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
     var edgeInset by remember { mutableStateOf(prefs.edgeInset) }
     var lat by remember { mutableStateOf(prefs.lat) }
     var lon by remember { mutableStateOf(prefs.lon) }
-    val nc = paletteByKey(palKey)
+    var customPals by remember { mutableStateOf(prefs.customPalettes()) }
+    var notifStyle by remember { mutableStateOf(prefs.notifStyle) }
+    var notifMax by remember { mutableStateOf(prefs.notifMax) }
+    var filterMode by remember { mutableStateOf(prefs.filterMode) }
+    var filterLevel by remember { mutableStateOf(prefs.filterLevel) }
+    val nc = paletteFrom(palKey, customPals)
 
     val device = remember { DeviceState(ctx) }
     val media = remember { MediaState(ctx) }
@@ -75,6 +83,15 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
     LaunchedEffect(app.resumeTick) {
         device.refresh()
         media.start()
+    }
+    // garante que o preto e branco do sistema esteja de acordo com o modo escolhido
+    LaunchedEffect(app.resumeTick) {
+        applySystemMono(ctx, filterMode == "mono")
+    }
+    // serviço dos botões marcado como ligado mas parado (ex.: depois de limpar os recentes): tenta religar
+    LaunchedEffect(app.resumeTick) {
+        delay(1500)
+        if (navServiceEnabled(ctx) && !NavState.running) reviveNavService(ctx)
     }
 
     var apps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
@@ -103,6 +120,51 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
             recents = r
             prefs.saveRecents(r)
         }
+    }
+
+    // toque no relógio: abre o app Relógio/Alarmes (e, se não houver, tenta os pacotes conhecidos)
+    fun openClock() {
+        try {
+            val i = Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(i)
+        } catch (e: Exception) {
+            listOf("com.android.deskclock", "com.google.android.deskclock").firstOrNull { launchApp(ctx, it) }
+        }
+    }
+
+    // toque na data: abre o app Agenda padrão
+    fun openCalendar() {
+        try {
+            val i = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(i)
+        } catch (e: Exception) {
+            listOf("com.google.android.calendar", "com.android.calendar").firstOrNull { launchApp(ctx, it) }
+        }
+    }
+
+    // [ MAPS // NAV ]: abre o app de mapas padrão
+    fun openMaps() {
+        try {
+            val i = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_MAPS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(i)
+        } catch (e: Exception) {
+            try {
+                val g = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:0,0")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                ctx.startActivity(g)
+            } catch (e2: Exception) {
+                launchApp(ctx, "com.google.android.apps.maps")
+            }
+        }
+    }
+
+    // toque no DIAGNÓSTICO: alterna a economia de bateria (se o adb liberou) ou abre a tela do sistema
+    fun powerAction() {
+        if (!setBatterySaver(ctx, !device.saver)) {
+            safeStart(ctx, Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS))
+        }
+        device.refresh()
     }
 
     // histórico de RAM para o gráfico
@@ -185,28 +247,68 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
 
     val settings = SettingsState(
         palKey = palKey,
+        custom = customPals,
         navPos = navPos,
         guide = guide,
         iconMode = iconMode,
         edgeInset = edgeInset,
         lat = lat,
         lon = lon,
+        notifStyle = notifStyle,
+        notifMax = notifMax,
+        filterMode = filterMode,
+        filterLevel = filterLevel,
         notifOk = media.hasAccess,
         a11yOk = remember(app.resumeTick) { navServiceEnabled(ctx) },
+        a11yRunning = NavState.running,
         locOk = remember(app.resumeTick) { granted(ctx, Manifest.permission.ACCESS_FINE_LOCATION) },
         phoneOk = remember(app.resumeTick) { granted(ctx, Manifest.permission.READ_PHONE_STATE) },
+        secureOk = remember(app.resumeTick) { canWriteSecure(ctx) },
     )
     val actions = SettingsActions(
         onClose = { scr = Scr.HOME },
         onPal = { palKey = it; prefs.palKey = it },
+        onSavePalette = { p ->
+            val l = customPals.filter { it.key != p.key } + p
+            customPals = l
+            prefs.saveCustomPalettes(l)
+            palKey = p.key
+            prefs.palKey = p.key
+        },
+        onDeletePalette = { k ->
+            val l = customPals.filter { it.key != k }
+            customPals = l
+            prefs.saveCustomPalettes(l)
+            if (palKey == k) {
+                palKey = "night"
+                prefs.palKey = "night"
+            }
+        },
         onPos = { navPos = it; prefs.navPos = it },
         onGuide = { guide = it; prefs.guide = it },
         onIconMode = { iconMode = it; prefs.iconMode = it },
         onInset = { edgeInset = it; prefs.edgeInset = it },
         onLat = { lat = it; prefs.lat = it },
         onLon = { lon = it; prefs.lon = it },
+        onNotifStyle = { notifStyle = it; prefs.notifStyle = it },
+        onNotifMax = { notifMax = it; prefs.notifMax = it },
+        onFilterMode = {
+            filterMode = it
+            prefs.filterMode = it
+            // preto e branco real (se a permissão por adb existir); os demais modos são desenhados pelo serviço
+            applySystemMono(ctx, it == "mono")
+        },
+        onFilterLevel = { filterLevel = it; prefs.filterLevel = it },
+        copyAdb = {
+            val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            cm.setPrimaryClip(ClipData.newPlainText("adb", ADB_CMD))
+        },
         openNotif = { safeStart(ctx, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
         openA11y = { safeStart(ctx, Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+        reviveNav = {
+            if (!reviveNavService(ctx)) safeStart(ctx, Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            app.resumeTick++
+        },
         askLoc = { requestPerms(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) },
         askPhone = { requestPerms(arrayOf(Manifest.permission.READ_PHONE_STATE)) },
         openHome = { safeStart(ctx, Intent(Settings.ACTION_HOME_SETTINGS)) },
@@ -225,12 +327,28 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 ramHist = ramHist,
                 onOpen = { openApp(it) },
                 onSettings = { scr = Scr.SETTINGS },
+                onClock = { openClock() },
                 onMediaAccess = { safeStart(ctx, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
                 onSwipeUp = { scr = Scr.DRAWER },
                 daemons = daemons,
                 apps = byPkg,
                 host = host,
                 scroll = homeScroll,
+                onCalendar = { openCalendar() },
+                onMaps = { openMaps() },
+                onPower = { powerAction() },
+                notifs = NotifStore.items,
+                notifStyle = notifStyle,
+                notifMax = notifMax,
+                onNotifOpen = { n ->
+                    try {
+                        n.intent?.send() ?: launchApp(ctx, n.pkg)
+                    } catch (e: Exception) {
+                        launchApp(ctx, n.pkg)
+                    }
+                },
+                onNotifDismiss = { NotifStore.dismiss(it) },
+                onNotifClear = { NotifStore.dismissAll() },
             )
 
             AnimatedVisibility(
@@ -258,6 +376,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                     host = host,
                     realIcons = realIcons,
                     onApps = { scr = Scr.DRAWER },
+                    onSwipeUp = { scr = Scr.DRAWER },
                     onOpen = { openApp(it) },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)

@@ -1,4 +1,4 @@
-#Tue Nov 17 09:43:22 GMT-03:00 2026
+#Thu Nov 19 00:06:25 GMT-03:00 2026
 base.0=/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/build/intermediates/dex/debug/mergeExtDexDebug/classes.dex
 base.1=/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex
 base.2=/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/build/intermediates/dex/debug/mergeProjectDexDebug/6/classes.dex
