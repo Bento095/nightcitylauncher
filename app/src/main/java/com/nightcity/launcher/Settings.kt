@@ -3,6 +3,9 @@ package com.nightcity.launcher
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -216,14 +222,107 @@ private fun PalCell(
     }
 }
 
+private fun hsvColor(h: Float, s: Float, v: Float): Color =
+    Color(android.graphics.Color.HSVToColor(floatArrayOf(h, s, v)))
+
 @Composable
-private fun HexField(label: String, value: String, onChange: (String) -> Unit, swatch: Color?) {
+private fun ColorPicker(value: String, onChange: (String) -> Unit) {
+    val parsed = parseHex(value)?.let { Color(0xFF000000L or it) } ?: Color.White
+    val hsv = remember(value) {
+        FloatArray(3).also { android.graphics.Color.colorToHSV(parsed.toArgb(), it) }
+    }
+    var hue by remember(value) { mutableStateOf(hsv[0]) }
+    var sat by remember(value) { mutableStateOf(hsv[1]) }
+    var brightness by remember(value) { mutableStateOf(hsv[2]) }
+
+    fun publish() {
+        val rgb = hsvColor(hue, sat, brightness).toArgb() and 0xFFFFFF
+        onChange("#%06X".format(rgb))
+    }
+    Column(
+        Modifier.fillMaxWidth().padding(start = 104.dp, top = 6.dp, bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Canvas(
+            Modifier.fillMaxWidth().height(172.dp)
+                .pointerInput(hue) {
+                    fun update(point: Offset) {
+                        sat = (point.x / size.width).coerceIn(0f, 1f)
+                        brightness = (1f - point.y / size.height).coerceIn(0f, 1f)
+                        publish()
+                    }
+                    detectTapGestures { update(it) }
+                }
+                .pointerInput(hue) {
+                    detectDragGestures { change, _ ->
+                        change.consume()
+                        sat = (change.position.x / size.width).coerceIn(0f, 1f)
+                        brightness = (1f - change.position.y / size.height).coerceIn(0f, 1f)
+                        publish()
+                    }
+                }
+        ) {
+            val base = hsvColor(hue, 1f, 1f)
+            drawRect(base)
+            drawRect(brush = Brush.horizontalGradient(listOf(Color.White, Color.Transparent)))
+            drawRect(brush = Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
+            val marker = Offset(sat * size.width, (1f - brightness) * size.height)
+            drawCircle(Color.Black, radius = 8.dp.toPx(), center = marker, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+            drawCircle(Color.White, radius = 6.dp.toPx(), center = marker, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+        }
+        Canvas(
+            Modifier.fillMaxWidth().height(18.dp)
+                .pointerInput(Unit) {
+                    fun update(point: Offset) {
+                        hue = (point.x / size.width * 360f).coerceIn(0f, 360f)
+                        publish()
+                    }
+                    detectTapGestures { update(it) }
+                }
+                .pointerInput(Unit) {
+                    detectDragGestures { change, _ ->
+                        change.consume()
+                        hue = (change.position.x / size.width * 360f).coerceIn(0f, 360f)
+                        publish()
+                    }
+                }
+        ) {
+            val colors = (0..6).map { hsvColor(it * 60f, 1f, 1f) }
+            drawRect(brush = Brush.horizontalGradient(colors))
+            val x = hue / 360f * size.width
+            drawRect(Color.White, topLeft = Offset(x - 1.dp.toPx(), 0f), size = androidx.compose.ui.geometry.Size(2.dp.toPx(), size.height))
+        }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(24.dp).background(hsvColor(hue, sat, brightness)).border(1.dp, Color.White))
+            Spacer(Modifier.width(8.dp))
+            Tx("MATIZ ${hue.toInt()}°  •  SAT ${ (sat * 100).toInt()}%  •  BRILHO ${(brightness * 100).toInt()}%", LocalNc.current.dim, 9, mono = true)
+        }
+    }
+}
+
+@Composable
+private fun HexField(
+    label: String,
+    value: String,
+    onChange: (String) -> Unit,
+    swatch: Color?,
+    pickerOpen: Boolean,
+    onSwatchClick: () -> Unit,
+) {
     val nc = LocalNc.current
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Tx(label, nc.dim, 10, mono = true, modifier = Modifier.width(104.dp))
-        TextBox(value, onChange, Modifier.weight(1f))
-        Spacer(Modifier.width(6.dp))
-        Box(Modifier.size(24.dp).background(swatch ?: Color.Transparent).border(1.dp, nc.y.copy(alpha = 0.4f)))
+    Column(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Tx(label, nc.dim, 10, mono = true, modifier = Modifier.width(104.dp))
+            TextBox(value, onChange, Modifier.weight(1f))
+            Spacer(Modifier.width(6.dp))
+            Box(
+                Modifier.size(30.dp).background(swatch ?: Color.Transparent)
+                    .border(if (pickerOpen) 2.dp else 1.dp, if (pickerOpen) nc.c else nc.y.copy(alpha = 0.55f))
+                    .clickable { onSwatchClick() },
+                contentAlignment = Alignment.Center,
+            ) { if (pickerOpen) Tx("✓", Color.Black, 13, true) }
+        }
+        if (pickerOpen) ColorPicker(value, onChange)
     }
 }
 
@@ -240,6 +339,7 @@ private fun PaletteEditor(
     val labels = listOf("DESTAQUE", "ACENTO", "ALERTA", "FUNDO", "FUNDO 2", "PAINÉIS", "TEXTO APAGADO", "DESLIGADO")
     val vals = remember(initial) { mutableStateListOf<String>().apply { addAll(src.hexList()) } }
     var err by remember(initial) { mutableStateOf("") }
+    var activePicker by remember(initial) { mutableStateOf<Int?>(null) }
 
     Column(
         Modifier.fillMaxWidth().background(Color.Black).border(1.dp, nc.c.copy(alpha = 0.5f)).padding(8.dp),
@@ -255,6 +355,8 @@ private fun PaletteEditor(
                 l, vals[i],
                 { vals[i] = it.filter { c -> c.isLetterOrDigit() || c == '#' }.take(7) },
                 parseHex(vals[i])?.let { Color(0xFF000000L or it) },
+                pickerOpen = activePicker == i,
+                onSwatchClick = { activePicker = if (activePicker == i) null else i },
             )
         }
         Note("Cores em hexadecimal de 6 dígitos, ex.: FCEE09")
