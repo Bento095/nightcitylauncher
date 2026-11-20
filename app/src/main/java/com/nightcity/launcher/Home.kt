@@ -369,6 +369,7 @@ fun HomeScreen(
                 )
                 Tx("BLUETOOTH", if (device.bt) nc.c else nc.off, 10, mono = true)
                 Tx("GPS", if (device.gps) nc.c else nc.off, 10, mono = true)
+                if (device.nfcPresent) Tx("NFC", if (device.nfc) nc.c else nc.off, 10, mono = true)
             }
 
             // --- quickhacks = apps recentes
@@ -488,31 +489,34 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Tx(
-                    "[ SYS // CONFIG ]",
+                    "[SYS//CONFIG]",
                     nc.y,
                     10,
                     true,
                     mono = true,
+                    spacing = 0f,
                     modifier = Modifier
                         .clickable { onSettings() }
                         .padding(vertical = 2.dp)
                 )
                 Tx(
-                    "[ MAPS // NAV ]",
+                    "[MAPS//NAV]",
                     nc.r,
                     10,
                     true,
                     mono = true,
+                    spacing = 0f,
                     modifier = Modifier
                         .clickable { onMaps() }
                         .padding(vertical = 2.dp)
                 )
                 Tx(
-                    "[ TERMUX // SHELL ]",
+                    "[TERMUX//SHELL]",
                     nc.c,
                     10,
                     true,
                     mono = true,
+                    spacing = 0f,
                     modifier = Modifier
                         .clickable { onOpen("com.termux") }
                         .padding(vertical = 2.dp)

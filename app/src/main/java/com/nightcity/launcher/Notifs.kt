@@ -22,6 +22,29 @@ object NotifStore {
     val items = mutableStateListOf<NotifItem>()
     var service: NotificationListenerService? = null
 
+    // chave da notificação -> instante da última publicação (para saber o que é novo)
+    private val seen = HashMap<String, Long>()
+
+    fun isNewPost(sbn: StatusBarNotification): Boolean = synchronized(seen) {
+        val prev = seen[sbn.key]
+        prev == null || prev != sbn.postTime
+    }
+
+    /** Dispara o efeito de notificação (se estiver ligado em Config). */
+    fun fx(s: NotificationListenerService, sbn: StatusBarNotification) {
+        val n = sbn.notification
+        if (sbn.isOngoing || sbn.packageName == s.packageName) return
+        if ((n.flags and Notification.FLAG_GROUP_SUMMARY) != 0) return
+        if (Prefs(s).fxMode == "off") return
+        val title = n.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
+        val app = try {
+            s.packageManager.getApplicationLabel(s.packageManager.getApplicationInfo(sbn.packageName, 0)).toString()
+        } catch (e: Exception) {
+            sbn.packageName
+        }
+        NavState.service?.playNotifFx(app, title)
+    }
+
     fun reload(s: NotificationListenerService) {
         val list: Array<StatusBarNotification> = try {
             s.activeNotifications ?: emptyArray()
@@ -44,6 +67,10 @@ object NotifStore {
                 sbn.packageName
             }
             out.add(NotifItem(sbn.key, sbn.packageName, app, title, text, sbn.postTime, n.contentIntent, sbn.isClearable))
+        }
+        synchronized(seen) {
+            seen.clear()
+            for (sbn in list) seen[sbn.key] = sbn.postTime
         }
         items.clear()
         items.addAll(out)
@@ -70,7 +97,9 @@ class MediaListenerService : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
+        val novo = sbn != null && NotifStore.isNewPost(sbn)
         NotifStore.reload(this)
+        if (novo && sbn != null) NotifStore.fx(this, sbn)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {

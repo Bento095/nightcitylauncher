@@ -94,6 +94,26 @@ class Prefs(ctx: Context) {
         get() = sp.getInt("filterLevel", 40)
         set(v) { sp.edit().putInt("filterLevel", v).apply() }
 
+    // --- efeito de notificação (OLED)
+    /** "off" | "glitch" | "crt" | "matrix" */
+    var fxMode: String
+        get() = sp.getString("fxMode", "off") ?: "off"
+        set(v) { sp.edit().putString("fxMode", v).apply() }
+
+    var fxSecs: Int
+        get() = sp.getInt("fxSecs", 4)
+        set(v) { sp.edit().putInt("fxSecs", v).apply() }
+
+    /** Acender a tela apagada para mostrar o efeito (e apagar de novo depois). */
+    var fxWake: Boolean
+        get() = sp.getBoolean("fxWake", false)
+        set(v) { sp.edit().putBoolean("fxWake", v).apply() }
+
+    /** Mostrar o efeito por cima dos apps quando a tela está ligada. */
+    var fxOver: Boolean
+        get() = sp.getBoolean("fxOver", true)
+        set(v) { sp.edit().putBoolean("fxOver", v).apply() }
+
     // --- paletas criadas pelo usuário: "chave|nome|y|c|r|bg|bg2|pn|dim|off;..." (cores em hexadecimal)
     fun customPalettes(): List<NcPalette> {
         val raw = sp.getString("customPalettes", "") ?: ""

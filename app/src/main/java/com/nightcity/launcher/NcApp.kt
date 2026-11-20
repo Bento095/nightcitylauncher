@@ -69,6 +69,10 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
     var notifMax by remember { mutableStateOf(prefs.notifMax) }
     var filterMode by remember { mutableStateOf(prefs.filterMode) }
     var filterLevel by remember { mutableStateOf(prefs.filterLevel) }
+    var fxMode by remember { mutableStateOf(prefs.fxMode) }
+    var fxSecs by remember { mutableStateOf(prefs.fxSecs) }
+    var fxWake by remember { mutableStateOf(prefs.fxWake) }
+    var fxOver by remember { mutableStateOf(prefs.fxOver) }
     val nc = paletteFrom(palKey, customPals)
 
     val device = remember { DeviceState(ctx) }
@@ -258,6 +262,10 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         notifMax = notifMax,
         filterMode = filterMode,
         filterLevel = filterLevel,
+        fxMode = fxMode,
+        fxSecs = fxSecs,
+        fxWake = fxWake,
+        fxOver = fxOver,
         notifOk = media.hasAccess,
         a11yOk = remember(app.resumeTick) { navServiceEnabled(ctx) },
         a11yRunning = NavState.running,
@@ -299,6 +307,11 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
             applySystemMono(ctx, it == "mono")
         },
         onFilterLevel = { filterLevel = it; prefs.filterLevel = it },
+        onFxMode = { fxMode = it; prefs.fxMode = it },
+        onFxSecs = { fxSecs = it; prefs.fxSecs = it },
+        onFxWake = { fxWake = it; prefs.fxWake = it },
+        onFxOver = { fxOver = it; prefs.fxOver = it },
+        testFx = { sec -> NavState.service?.testFx(sec * 1000L) },
         copyAdb = {
             val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             cm.setPrimaryClip(ClipData.newPlainText("adb", ADB_CMD))

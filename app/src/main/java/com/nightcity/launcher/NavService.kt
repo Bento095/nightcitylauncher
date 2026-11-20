@@ -2,6 +2,7 @@ package com.nightcity.launcher
 
 import android.accessibilityservice.AccessibilityService
 import android.animation.ValueAnimator
+import android.app.NotificationManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -15,6 +16,7 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.util.Log
 import android.provider.Settings
 import android.view.Gravity
@@ -36,6 +38,10 @@ fun navServiceEnabled(ctx: Context): Boolean {
 object NavState {
     @Volatile
     var running = false
+
+    /** Instância ativa do serviço (usada pelo painel de notificações e pelo efeito de notificação). */
+    @Volatile
+    var service: NavService? = null
 }
 
 /**
@@ -84,6 +90,7 @@ class NavService : AccessibilityService() {
     private var trigger: View? = null
     private var bar: View? = null
     private var filterView: View? = null
+    private var fxView: View? = null
     private val hideRun = Runnable { hideBar() }
     private val navKeys = setOf("navPos", "palKey", "guide", "edgeInset")
     private val filterKeys = setOf("filterMode", "filterLevel", "palKey")
@@ -125,6 +132,7 @@ class NavService : AccessibilityService() {
         prefs = Prefs(this)
         prefs.sp.registerOnSharedPreferenceChangeListener(listener)
         NavState.running = true
+        NavState.service = this
         Log.d("NcNav", "serviço conectado")
         applyFilter()
         install()
@@ -159,10 +167,92 @@ class NavService : AccessibilityService() {
 
     private fun teardown() {
         NavState.running = false
+        NavState.service = null
+        removeFx()
         h.removeCallbacks(watchdog)
         try { prefs.sp.unregisterOnSharedPreferenceChangeListener(listener) } catch (e: Exception) { }
         remove()
         removeFilter()
+    }
+
+    // ---------------------------------------------------------------- efeito de notificação
+
+    private fun dndOn(): Boolean = try {
+        val f = (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).currentInterruptionFilter
+        f != NotificationManager.INTERRUPTION_FILTER_ALL && f != NotificationManager.INTERRUPTION_FILTER_UNKNOWN
+    } catch (e: Exception) {
+        false
+    }
+
+    /** Apaga a tela de novo (usado depois que o efeito acendeu a tela apagada). */
+    fun lockScreen() {
+        if (Build.VERSION.SDK_INT >= 28) performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
+    }
+
+    /** Toca o efeito de teste depois de [delayMs] (dá tempo de apagar a tela para testar o modo "acordar"). */
+    fun testFx(delayMs: Long) {
+        h.postDelayed({ playNotifFx("TESTE", "Efeito de notificação", force = true) }, delayMs)
+    }
+
+    /**
+     * Tela ligada: desenha o efeito por cima do app atual.
+     * Tela apagada: acende a tela com uma tela preta (OLED), mostra o efeito e apaga de novo.
+     */
+    fun playNotifFx(label: String, title: String, force: Boolean = false) {
+        h.post {
+            if (!::prefs.isInitialized || !::wm.isInitialized) return@post
+            if (!force && (prefs.fxMode == "off" || dndOn())) return@post
+            val mode = if (prefs.fxMode == "off") "glitch" else prefs.fxMode
+            val pm = getSystemService(POWER_SERVICE) as PowerManager
+            if (pm.isInteractive) {
+                if (force || prefs.fxOver) showFxOverlay(mode, label, title)
+            } else if (force || prefs.fxWake) {
+                val i = Intent(this, NotifFxActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+                    .putExtra("mode", mode)
+                    .putExtra("label", label)
+                    .putExtra("title", title)
+                    .putExtra("secs", prefs.fxSecs)
+                try {
+                    startActivity(i)
+                } catch (e: Exception) {
+                    Log.w("NcNav", "não foi possível acender a tela para o efeito", e)
+                }
+            }
+        }
+    }
+
+    private fun showFxOverlay(mode: String, label: String, title: String) {
+        removeFx()
+        var ref: View? = null
+        val v = FxView(this, mode, prefs.currentPalette(), prefs.fxSecs, label, title, false) {
+            h.post { if (fxView === ref) removeFx() }
+        }
+        ref = v
+        val lp = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT,
+        )
+        if (Build.VERSION.SDK_INT >= 28) {
+            lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+        try {
+            wm.addView(v, lp)
+            fxView = v
+        } catch (e: Exception) {
+            Log.w("NcNav", "não foi possível desenhar o efeito", e)
+        }
+    }
+
+    private fun removeFx() {
+        fxView?.let { try { wm.removeView(it) } catch (e: Exception) { } }
+        fxView = null
     }
 
     // ---------------------------------------------------------------- filtro de tela

@@ -50,6 +50,10 @@ class SettingsState(
     val notifMax: Int,
     val filterMode: String,
     val filterLevel: Int,
+    val fxMode: String,
+    val fxSecs: Int,
+    val fxWake: Boolean,
+    val fxOver: Boolean,
     val notifOk: Boolean,
     val a11yOk: Boolean,
     val a11yRunning: Boolean,
@@ -73,6 +77,11 @@ class SettingsActions(
     val onNotifMax: (Int) -> Unit,
     val onFilterMode: (String) -> Unit,
     val onFilterLevel: (Int) -> Unit,
+    val onFxMode: (String) -> Unit,
+    val onFxSecs: (Int) -> Unit,
+    val onFxWake: (Boolean) -> Unit,
+    val onFxOver: (Boolean) -> Unit,
+    val testFx: (Int) -> Unit,
     val copyAdb: () -> Unit,
     val openNotif: () -> Unit,
     val openA11y: () -> Unit,
@@ -389,6 +398,37 @@ fun SettingsScreen(s: SettingsState, a: SettingsActions) {
             Tx("QUANTAS MOSTRAR", nc.dim, 10, mono = true)
             Opts(listOf("3" to 3, "5" to 5, "8" to 8), s.notifMax, a.onNotifMax)
             Note("Vale só para o painel NOTIFICAÇÕES da tela inicial. O visual das notificações do sistema (barra de cima e pop-ups) é controlado pelo próprio sistema e um launcher não consegue trocá-lo. OCULTO mostra só o nome do app.")
+        }
+
+        Fold(
+            "EFEITO DE NOTIFICAÇÃO (OLED)",
+            startOpen = false,
+            summary = when (s.fxMode) { "glitch" -> "GLITCH"; "crt" -> "CRT"; "matrix" -> "MATRIX"; else -> "DESLIGADO" },
+        ) {
+            Tx("EFEITO", nc.dim, 10, mono = true)
+            Opts(
+                listOf("DESLIGADO" to "off", "GLITCH" to "glitch", "CRT" to "crt", "MATRIX" to "matrix"),
+                s.fxMode, a.onFxMode,
+            )
+            Tx("DURAÇÃO (s)", nc.dim, 10, mono = true)
+            Opts(listOf("3" to 3, "5" to 5, "8" to 8), s.fxSecs, a.onFxSecs)
+            Tx("COM A TELA LIGADA", nc.dim, 10, mono = true)
+            Opts(listOf("POR CIMA DOS APPS" to true, "NÃO MOSTRAR" to false), s.fxOver, a.onFxOver)
+            Tx("COM A TELA APAGADA", nc.dim, 10, mono = true)
+            Opts(listOf("ACENDER E MOSTRAR" to true, "NÃO ACENDER" to false), s.fxWake, a.onFxWake)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(
+                    Modifier.weight(1f).border(1.dp, nc.c).clickable { a.testFx(0) }.padding(vertical = 9.dp),
+                    contentAlignment = Alignment.Center,
+                ) { Tx("TESTAR AGORA", nc.c, 11, true, spacing = 1f) }
+                Box(
+                    Modifier.weight(1f).border(1.dp, nc.c).clickable { a.testFx(8) }.padding(vertical = 9.dp),
+                    contentAlignment = Alignment.Center,
+                ) { Tx("TESTAR EM 8 s", nc.c, 11, true, spacing = 1f) }
+            }
+            Note("TESTAR EM 8 s: toque e apague a tela com o botão lateral; ela deve acender com o efeito e apagar de novo.")
+            Note("Usa o serviço de acessibilidade e o acesso a notificações. O efeito é desenhado por cima: não distorce o conteúdo dos apps. Com a tela apagada, o fundo preto deixa os pixels de uma tela OLED desligados. Não aparece com o modo Não Perturbe ligado. Tocar na tela durante o efeito fecha o efeito e não apaga a tela.")
+            if (!s.a11yRunning) Note("O serviço de acessibilidade não está rodando: ative-o em Permissões e serviços.")
         }
 
         Fold("PALETAS DE CORES", startOpen = false, summary = current.name) {

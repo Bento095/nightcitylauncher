@@ -3,10 +3,6 @@
 Launcher para Android com visual cyberpunk/terminal, feito em **Kotlin + Jetpack Compose**.
 Nasceu como protótipo HTML e funciona em Android 8.0 ou mais novo.
 
-> **Status: versão 0.1.** O código foi escrito sem poder compilar no ambiente de criação, então a
-> primeira sincronização no Android Studio pode apontar erros pequenos. Se aparecerem, corrija ou
-> cole a mensagem para quem estiver dando manutenção.
-
 ---
 
 ## Sumário
@@ -59,15 +55,6 @@ Nasceu como protótipo HTML e funciona em Android 8.0 ou mais novo.
 | `compileSdk` / `targetSdk` / `minSdk` | 37 / 36 / 26 |
 | JDK | 17 ou mais novo (o do Studio serve) |
 
-**Passo a passo (Fedora):**
-
-1. Coloque a pasta do projeto em `/mnt/arquivos/Dev/Android/projetos/NightCityLauncher`.
-2. No Android Studio: **File > Open** e escolha a pasta.
-3. Aceite o que o Studio pedir para baixar (SDK Platform 37, Build Tools, Gradle 9.6.0).
-4. Espere o **Gradle Sync** terminar.
-5. No celular, ligue a **depuração USB** e clique em **Run**.
-
-Se o Studio reclamar de versão, abra o aviso e aceite a sugestão de atualização ou ajuste os números em `build.gradle.kts` e `app/build.gradle.kts`.
 
 ---
 
@@ -320,7 +307,6 @@ NightCityLauncher/
 
 ## Limites conhecidos
 
-- **Código não compilado no ambiente de criação.** Pode haver erros de sintaxe a corrigir.
 - **Hotspot** depende de um aviso interno do sistema e pode não aparecer em todo aparelho.
 - **5G não autônomo** aparece como 4G LTE.
 - **Faixa de gesto nas laterais** pode competir com o gesto de voltar do sistema.

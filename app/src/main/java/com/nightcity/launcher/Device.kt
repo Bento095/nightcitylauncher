@@ -18,6 +18,7 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
+import android.nfc.NfcAdapter
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Environment
@@ -48,6 +49,8 @@ class DeviceState(private val ctx: Context) {
     var alarm by mutableStateOf(false)
     var bt by mutableStateOf(false)
     var gps by mutableStateOf(false)
+    var nfc by mutableStateOf(false)
+    var nfcPresent by mutableStateOf(false)
     var netText by mutableStateOf("OFFLINE")
     var netBars by mutableIntStateOf(0)
     var ramPct by mutableIntStateOf(0)
@@ -75,6 +78,7 @@ class DeviceState(private val ctx: Context) {
             addAction(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED)
             addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
             addAction(LocationManager.MODE_CHANGED_ACTION)
+            addAction(NfcAdapter.ACTION_ADAPTER_STATE_CHANGED)
             addAction(AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED)
             addAction("android.net.wifi.WIFI_AP_STATE_CHANGED")
         }
@@ -134,6 +138,11 @@ class DeviceState(private val ctx: Context) {
         } catch (e: Exception) { }
         try {
             alarm = (ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager).nextAlarmClock != null
+        } catch (e: Exception) { }
+        try {
+            val a = NfcAdapter.getDefaultAdapter(ctx)
+            nfcPresent = a != null
+            nfc = a?.isEnabled == true
         } catch (e: Exception) { }
     }
 
