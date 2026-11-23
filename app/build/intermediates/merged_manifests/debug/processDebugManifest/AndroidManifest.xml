@@ -14,6 +14,15 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
+
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="false" />
+
+    <!-- Opcional: só funciona se concedida por adb (ver Config > Energia) -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
 
     <queries>
         <intent>
@@ -55,7 +64,18 @@
             </intent-filter>
         </activity>
 
-        <!-- Necessário só para ler a sessão de mídia (controles de áudio) -->
+        <!-- Tela preta com o efeito de notificação -->
+        <activity
+            android:name="com.nightcity.launcher.NotifFxActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:showWhenLocked="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.NightCity"
+            android:turnScreenOn="true" />
+
+        <!-- Necessário para ler a sessão de mídia -->
         <service
             android:name="com.nightcity.launcher.MediaListenerService"
             android:exported="true"

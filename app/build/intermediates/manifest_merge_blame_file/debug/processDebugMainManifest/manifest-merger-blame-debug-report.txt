@@ -12,222 +12,260 @@
 9-->INJECTED
 10
 11    <uses-permission android:name="android.permission.INTERNET" />
-11-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:4:5-67
-11-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:4:22-64
+11-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:5:5-67
+11-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:5:22-64
 12    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-12-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:5:5-79
-12-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:5:22-76
+12-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:6:5-79
+12-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:6:22-76
 13    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-13-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:6:5-76
-13-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:6:22-73
+13-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:7:5-76
+13-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:7:22-73
 14    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-14-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:7:5-79
-14-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:7:22-76
+14-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:8:5-79
+14-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:8:22-76
 15    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-15-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:8:5-81
-15-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:8:22-78
+15-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:9:5-81
+15-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:9:22-78
 16    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-16-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:9:5-75
-16-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:9:22-72
-17
-18    <queries>
-18-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:11:5-16:15
-19        <intent>
-19-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:12:9-15:18
-20            <action android:name="android.intent.action.MAIN" />
-20-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:13:13-65
-20-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:13:21-62
-21
-22            <category android:name="android.intent.category.LAUNCHER" />
-22-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:14:13-73
-22-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:14:23-70
-23        </intent>
-24    </queries>
-25
-26    <permission
-26-->[androidx.core:core:1.18.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e76965bf67aea8a092c29ce28bffeb38/transformed/core-1.18.0/AndroidManifest.xml:22:5-24:47
-27        android:name="com.nightcity.launcher.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
-27-->[androidx.core:core:1.18.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e76965bf67aea8a092c29ce28bffeb38/transformed/core-1.18.0/AndroidManifest.xml:23:9-81
-28        android:protectionLevel="signature" />
-28-->[androidx.core:core:1.18.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e76965bf67aea8a092c29ce28bffeb38/transformed/core-1.18.0/AndroidManifest.xml:24:9-44
-29
-30    <uses-permission android:name="com.nightcity.launcher.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
-30-->[androidx.core:core:1.18.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e76965bf67aea8a092c29ce28bffeb38/transformed/core-1.18.0/AndroidManifest.xml:26:5-97
-30-->[androidx.core:core:1.18.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e76965bf67aea8a092c29ce28bffeb38/transformed/core-1.18.0/AndroidManifest.xml:26:22-94
-31
-32    <application
-32-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:18:5-64:19
-33        android:allowBackup="false"
-33-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:19:9-36
-34        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
-34-->[androidx.core:core:1.18.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e76965bf67aea8a092c29ce28bffeb38/transformed/core-1.18.0/AndroidManifest.xml:28:18-86
-35        android:debuggable="true"
-36        android:extractNativeLibs="false"
-36-->INJECTED
-37        android:icon="@drawable/ic_launcher"
-37-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:20:9-45
-38        android:label="@string/app_name"
-38-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:21:9-41
-39        android:supportsRtl="true"
-39-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:22:9-35
-40        android:testOnly="true"
-41        android:theme="@style/Theme.NightCity" >
-41-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:23:9-47
-42        <activity
-42-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:25:9-38:20
-43            android:name="com.nightcity.launcher.MainActivity"
-43-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:26:13-41
-44            android:exported="true"
-44-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:27:13-36
-45            android:launchMode="singleTask"
-45-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:28:13-44
-46            android:screenOrientation="portrait"
-46-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:29:13-49
-47            android:stateNotNeeded="true"
-47-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:30:13-42
-48            android:windowSoftInputMode="adjustResize" >
-48-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:31:13-55
-49            <intent-filter>
-49-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:32:13-37:29
-50                <action android:name="android.intent.action.MAIN" />
-50-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:13:13-65
-50-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:13:21-62
-51
-52                <category android:name="android.intent.category.HOME" />
-52-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:34:17-73
-52-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:34:27-70
-53                <category android:name="android.intent.category.DEFAULT" />
-53-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:35:17-76
-53-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:35:27-73
-54                <category android:name="android.intent.category.LAUNCHER" />
-54-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:14:13-73
-54-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:14:23-70
-55            </intent-filter>
-56        </activity>
-57
-58        <!-- Necessário só para ler a sessão de mídia (controles de áudio) -->
-59        <service
-59-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:41:9-49:19
-60            android:name="com.nightcity.launcher.MediaListenerService"
-60-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:42:13-49
-61            android:exported="true"
-61-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:43:13-36
-62            android:label="@string/app_name"
-62-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:44:13-45
-63            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" >
-63-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:45:13-87
-64            <intent-filter>
-64-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:46:13-48:29
-65                <action android:name="android.service.notification.NotificationListenerService" />
-65-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:47:17-99
-65-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:47:25-96
-66            </intent-filter>
-67        </service>
-68
-69        <!-- Botões de navegação por cima de qualquer app -->
-70        <service
-70-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:52:9-63:19
-71            android:name="com.nightcity.launcher.NavService"
-71-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:53:13-39
-72            android:exported="false"
-72-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:54:13-37
-73            android:label="@string/a11y_label"
-73-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:55:13-47
-74            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" >
-74-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:56:13-79
-75            <intent-filter>
-75-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:57:13-59:29
-76                <action android:name="android.accessibilityservice.AccessibilityService" />
-76-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:58:17-92
-76-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:58:25-89
-77            </intent-filter>
-78
-79            <meta-data
-79-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:60:13-62:72
-80                android:name="android.accessibilityservice"
-80-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:61:17-60
-81                android:resource="@xml/accessibility_service_config" />
-81-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:62:17-69
-82        </service>
-83
-84        <uses-library
-84-->[androidx.window:window:1.5.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e0b6cb6a957d3782935d962ae8640bdc/transformed/window-1.5.0/AndroidManifest.xml:23:9-25:40
-85            android:name="androidx.window.extensions"
-85-->[androidx.window:window:1.5.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e0b6cb6a957d3782935d962ae8640bdc/transformed/window-1.5.0/AndroidManifest.xml:24:13-54
-86            android:required="false" />
-86-->[androidx.window:window:1.5.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e0b6cb6a957d3782935d962ae8640bdc/transformed/window-1.5.0/AndroidManifest.xml:25:13-37
-87        <uses-library
-87-->[androidx.window:window:1.5.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e0b6cb6a957d3782935d962ae8640bdc/transformed/window-1.5.0/AndroidManifest.xml:26:9-28:40
-88            android:name="androidx.window.sidecar"
-88-->[androidx.window:window:1.5.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e0b6cb6a957d3782935d962ae8640bdc/transformed/window-1.5.0/AndroidManifest.xml:27:13-51
-89            android:required="false" />
-89-->[androidx.window:window:1.5.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e0b6cb6a957d3782935d962ae8640bdc/transformed/window-1.5.0/AndroidManifest.xml:28:13-37
-90
-91        <provider
-91-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
-92            android:name="androidx.startup.InitializationProvider"
-92-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:25:13-67
-93            android:authorities="com.nightcity.launcher.androidx-startup"
-93-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:26:13-68
-94            android:exported="false" >
-94-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:27:13-37
-95            <meta-data
-95-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:29:13-31:52
-96                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-96-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
-97                android:value="androidx.startup" />
-97-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
-98            <meta-data
-98-->[androidx.lifecycle:lifecycle-process:2.9.4] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/f67421c46657e246bedb7931b18adf8b/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:29:13-31:52
-99                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-99-->[androidx.lifecycle:lifecycle-process:2.9.4] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/f67421c46657e246bedb7931b18adf8b/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:30:17-78
-100                android:value="androidx.startup" />
-100-->[androidx.lifecycle:lifecycle-process:2.9.4] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/f67421c46657e246bedb7931b18adf8b/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:31:17-49
-101            <meta-data
-101-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:29:13-31:52
-102                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-102-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:30:17-85
-103                android:value="androidx.startup" />
-103-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:31:17-49
-104        </provider>
-105
-106        <receiver
-106-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:34:9-52:20
-107            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-107-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:35:13-76
-108            android:directBootAware="false"
-108-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:36:13-44
-109            android:enabled="true"
-109-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:37:13-35
-110            android:exported="true"
-110-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:38:13-36
-111            android:permission="android.permission.DUMP" >
-111-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:39:13-57
-112            <intent-filter>
-112-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:40:13-42:29
-113                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-113-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:17-91
-113-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:25-88
-114            </intent-filter>
-115            <intent-filter>
-115-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:43:13-45:29
-116                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-116-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:17-85
-116-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:25-82
-117            </intent-filter>
-118            <intent-filter>
-118-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:46:13-48:29
-119                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-119-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:17-88
-119-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:25-85
-120            </intent-filter>
-121            <intent-filter>
-121-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:49:13-51:29
-122                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-122-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:17-95
-122-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:25-92
-123            </intent-filter>
-124        </receiver>
-125    </application>
-126
-127</manifest>
+16-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:10:5-75
+16-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:10:22-72
+17    <uses-permission android:name="android.permission.NFC" />
+17-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:11:5-62
+17-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:11:22-59
+18    <uses-permission android:name="android.permission.SET_WALLPAPER" />
+18-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:12:5-72
+18-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:12:22-69
+19
+20    <uses-feature
+20-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:14:5-16:36
+21        android:name="android.hardware.nfc"
+21-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:15:9-44
+22        android:required="false" />
+22-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:16:9-33
+23
+24    <!-- Opcional: só funciona se concedida por adb (ver Config > Energia) -->
+25    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+25-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:19:5-21:47
+25-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:20:9-64
+26
+27    <queries>
+27-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:23:5-28:15
+28        <intent>
+28-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:24:9-27:18
+29            <action android:name="android.intent.action.MAIN" />
+29-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:25:13-65
+29-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:25:21-62
+30
+31            <category android:name="android.intent.category.LAUNCHER" />
+31-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:26:13-73
+31-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:26:23-70
+32        </intent>
+33    </queries>
+34
+35    <permission
+35-->[androidx.core:core:1.18.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e76965bf67aea8a092c29ce28bffeb38/transformed/core-1.18.0/AndroidManifest.xml:22:5-24:47
+36        android:name="com.nightcity.launcher.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+36-->[androidx.core:core:1.18.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e76965bf67aea8a092c29ce28bffeb38/transformed/core-1.18.0/AndroidManifest.xml:23:9-81
+37        android:protectionLevel="signature" />
+37-->[androidx.core:core:1.18.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e76965bf67aea8a092c29ce28bffeb38/transformed/core-1.18.0/AndroidManifest.xml:24:9-44
+38
+39    <uses-permission android:name="com.nightcity.launcher.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+39-->[androidx.core:core:1.18.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e76965bf67aea8a092c29ce28bffeb38/transformed/core-1.18.0/AndroidManifest.xml:26:5-97
+39-->[androidx.core:core:1.18.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e76965bf67aea8a092c29ce28bffeb38/transformed/core-1.18.0/AndroidManifest.xml:26:22-94
+40
+41    <application
+41-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:30:5-92:19
+42        android:allowBackup="false"
+42-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:31:9-36
+43        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+43-->[androidx.core:core:1.18.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e76965bf67aea8a092c29ce28bffeb38/transformed/core-1.18.0/AndroidManifest.xml:28:18-86
+44        android:debuggable="true"
+45        android:extractNativeLibs="false"
+45-->INJECTED
+46        android:icon="@drawable/ic_launcher"
+46-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:32:9-45
+47        android:label="@string/app_name"
+47-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:33:9-41
+48        android:supportsRtl="true"
+48-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:34:9-35
+49        android:testOnly="true"
+50        android:theme="@style/Theme.NightCity" >
+50-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:35:9-47
+51        <activity
+51-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:37:9-51:20
+52            android:name="com.nightcity.launcher.MainActivity"
+52-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:38:13-41
+53            android:exported="true"
+53-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:39:13-36
+54            android:launchMode="singleTask"
+54-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:40:13-44
+55            android:screenOrientation="portrait"
+55-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:41:13-49
+56            android:stateNotNeeded="true"
+56-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:42:13-42
+57            android:windowSoftInputMode="adjustResize" >
+57-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:43:13-55
+58            <intent-filter>
+58-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:45:13-50:29
+59                <action android:name="android.intent.action.MAIN" />
+59-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:25:13-65
+59-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:25:21-62
+60
+61                <category android:name="android.intent.category.HOME" />
+61-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:47:17-73
+61-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:47:27-70
+62                <category android:name="android.intent.category.DEFAULT" />
+62-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:48:17-76
+62-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:48:27-73
+63                <category android:name="android.intent.category.LAUNCHER" />
+63-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:26:13-73
+63-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:26:23-70
+64            </intent-filter>
+65        </activity>
+66
+67        <!-- Tela preta com o efeito de notificação -->
+68        <activity
+68-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:54:9-62:43
+69            android:name="com.nightcity.launcher.NotifFxActivity"
+69-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:55:13-44
+70            android:excludeFromRecents="true"
+70-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:56:13-46
+71            android:exported="false"
+71-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:57:13-37
+72            android:launchMode="singleTask"
+72-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:58:13-44
+73            android:showWhenLocked="true"
+73-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:59:13-42
+74            android:taskAffinity=""
+74-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:60:13-36
+75            android:theme="@style/Theme.NightCity"
+75-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:61:13-51
+76            android:turnScreenOn="true" />
+76-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:62:13-40
+77
+78        <!-- Necessário para ler a sessão de mídia -->
+79        <service
+79-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:65:9-74:19
+80            android:name="com.nightcity.launcher.MediaListenerService"
+80-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:66:13-49
+81            android:exported="true"
+81-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:67:13-36
+82            android:label="@string/app_name"
+82-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:68:13-45
+83            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" >
+83-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:69:13-87
+84            <intent-filter>
+84-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:71:13-73:29
+85                <action android:name="android.service.notification.NotificationListenerService" />
+85-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:72:17-99
+85-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:72:25-96
+86            </intent-filter>
+87        </service>
+88
+89        <!-- Botões de navegação por cima de qualquer app -->
+90        <service
+90-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:77:9-90:19
+91            android:name="com.nightcity.launcher.NavService"
+91-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:78:13-39
+92            android:exported="false"
+92-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:79:13-37
+93            android:label="@string/a11y_label"
+93-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:80:13-47
+94            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" >
+94-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:81:13-79
+95            <intent-filter>
+95-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:83:13-85:29
+96                <action android:name="android.accessibilityservice.AccessibilityService" />
+96-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:84:17-92
+96-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:84:25-89
+97            </intent-filter>
+98
+99            <meta-data
+99-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:87:13-89:72
+100                android:name="android.accessibilityservice"
+100-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:88:17-60
+101                android:resource="@xml/accessibility_service_config" />
+101-->/mnt/arquivos/Dev/Android/projetos/NightCityLauncher/app/src/main/AndroidManifest.xml:89:17-69
+102        </service>
+103
+104        <uses-library
+104-->[androidx.window:window:1.5.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e0b6cb6a957d3782935d962ae8640bdc/transformed/window-1.5.0/AndroidManifest.xml:23:9-25:40
+105            android:name="androidx.window.extensions"
+105-->[androidx.window:window:1.5.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e0b6cb6a957d3782935d962ae8640bdc/transformed/window-1.5.0/AndroidManifest.xml:24:13-54
+106            android:required="false" />
+106-->[androidx.window:window:1.5.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e0b6cb6a957d3782935d962ae8640bdc/transformed/window-1.5.0/AndroidManifest.xml:25:13-37
+107        <uses-library
+107-->[androidx.window:window:1.5.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e0b6cb6a957d3782935d962ae8640bdc/transformed/window-1.5.0/AndroidManifest.xml:26:9-28:40
+108            android:name="androidx.window.sidecar"
+108-->[androidx.window:window:1.5.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e0b6cb6a957d3782935d962ae8640bdc/transformed/window-1.5.0/AndroidManifest.xml:27:13-51
+109            android:required="false" />
+109-->[androidx.window:window:1.5.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/e0b6cb6a957d3782935d962ae8640bdc/transformed/window-1.5.0/AndroidManifest.xml:28:13-37
+110
+111        <provider
+111-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
+112            android:name="androidx.startup.InitializationProvider"
+112-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:25:13-67
+113            android:authorities="com.nightcity.launcher.androidx-startup"
+113-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:26:13-68
+114            android:exported="false" >
+114-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:27:13-37
+115            <meta-data
+115-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:29:13-31:52
+116                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+116-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
+117                android:value="androidx.startup" />
+117-->[androidx.emoji2:emoji2:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/7a91a79a3130b5f547461a2d301f1e06/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
+118            <meta-data
+118-->[androidx.lifecycle:lifecycle-process:2.9.4] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/f67421c46657e246bedb7931b18adf8b/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:29:13-31:52
+119                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+119-->[androidx.lifecycle:lifecycle-process:2.9.4] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/f67421c46657e246bedb7931b18adf8b/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:30:17-78
+120                android:value="androidx.startup" />
+120-->[androidx.lifecycle:lifecycle-process:2.9.4] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/f67421c46657e246bedb7931b18adf8b/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:31:17-49
+121            <meta-data
+121-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:29:13-31:52
+122                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+122-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:30:17-85
+123                android:value="androidx.startup" />
+123-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:31:17-49
+124        </provider>
+125
+126        <receiver
+126-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:34:9-52:20
+127            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+127-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:35:13-76
+128            android:directBootAware="false"
+128-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:36:13-44
+129            android:enabled="true"
+129-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:37:13-35
+130            android:exported="true"
+130-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:38:13-36
+131            android:permission="android.permission.DUMP" >
+131-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:39:13-57
+132            <intent-filter>
+132-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:40:13-42:29
+133                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+133-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:17-91
+133-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:25-88
+134            </intent-filter>
+135            <intent-filter>
+135-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:43:13-45:29
+136                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+136-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:17-85
+136-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:25-82
+137            </intent-filter>
+138            <intent-filter>
+138-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:46:13-48:29
+139                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+139-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:17-88
+139-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:25-85
+140            </intent-filter>
+141            <intent-filter>
+141-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:49:13-51:29
+142                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+142-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:17-95
+142-->[androidx.profileinstaller:profileinstaller:1.4.0] /mnt/arquivos/Dev/Android/gradle/caches/9.6.0/transforms/baaf41fb1abec9ec37dee0d3d6a60268/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:25-92
+143            </intent-filter>
+144        </receiver>
+145    </application>
+146
+147</manifest>

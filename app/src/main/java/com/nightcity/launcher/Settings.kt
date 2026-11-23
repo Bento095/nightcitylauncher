@@ -66,6 +66,7 @@ class SettingsState(
     val fxSecs: Int,
     val fxWake: Boolean,
     val fxOver: Boolean,
+    val wpTarget: String,
     val notifOk: Boolean,
     val a11yOk: Boolean,
     val a11yRunning: Boolean,
@@ -97,6 +98,7 @@ class SettingsActions(
     val onFxSecs: (Int) -> Unit,
     val onFxWake: (Boolean) -> Unit,
     val onFxOver: (Boolean) -> Unit,
+    val onWpTarget: (String) -> Unit,
     val testFx: (Int) -> Unit,
     val copyAdb: () -> Unit,
     val openNotif: () -> Unit,
@@ -544,6 +546,20 @@ fun SettingsScreen(s: SettingsState, a: SettingsActions) {
             Tx("QUANTAS MOSTRAR", nc.dim, 10, mono = true)
             Opts(listOf("3" to 3, "5" to 5, "8" to 8), s.notifMax, a.onNotifMax)
             Note("Vale só para o painel NOTIFICAÇÕES da tela inicial. O visual das notificações do sistema (barra de cima e pop-ups) é controlado pelo próprio sistema e um launcher não consegue trocá-lo. OCULTO mostra só o nome do app.")
+        }
+
+        // Onde o papel de parede do tema é aplicado.
+        Fold(
+            "PAPEL DE PAREDE DO TEMA",
+            startOpen = false,
+            summary = when (s.wpTarget) { "both" -> "BLOQUEIO + INÍCIO"; "lock" -> "BLOQUEIO"; else -> "DESLIGADO" },
+        ) {
+            Tx("APLICAR EM", nc.dim, 10, mono = true)
+            Opts(
+                listOf("BLOQUEIO + INÍCIO" to "both", "SÓ BLOQUEIO" to "lock", "DESLIGADO" to "off"),
+                s.wpTarget, a.onWpTarget,
+            )
+            Note("A imagem é gerada com as cores da paleta ativa e muda quando você troca de paleta. DESLIGADO não altera o papel de parede do sistema.")
         }
 
         // Configuração e testes de animações/efeitos visuais de notificação para telas OLED.

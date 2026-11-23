@@ -114,6 +114,11 @@ class Prefs(ctx: Context) {
         get() = sp.getBoolean("fxOver", true)
         set(v) { sp.edit().putBoolean("fxOver", v).apply() }
 
+    /** Onde aplicar o papel de parede do tema: "lock" (bloqueio), "both" (bloqueio + início) ou "off". */
+    var wpTarget: String
+        get() = sp.getString("wpTarget", "both") ?: "both"
+        set(v) { sp.edit().putString("wpTarget", v).apply() }
+
     // --- paletas criadas pelo usuário: "chave|nome|y|c|r|bg|bg2|pn|dim|off;..." (cores em hexadecimal)
     fun customPalettes(): List<NcPalette> {
         val raw = sp.getString("customPalettes", "") ?: ""

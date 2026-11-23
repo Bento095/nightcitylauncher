@@ -9,10 +9,10 @@ import android.content.pm.PackageManager
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -89,9 +89,15 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
     var fxSecs by remember { mutableStateOf(prefs.fxSecs) }
     var fxWake by remember { mutableStateOf(prefs.fxWake) }
     var fxOver by remember { mutableStateOf(prefs.fxOver) }
+    var wpTarget by remember { mutableStateOf(prefs.wpTarget) }
 
     // Resolve a paleta ativa (padrão ou customizada) a partir da chave atual.
     val nc = paletteFrom(palKey, customPals)
+
+    // Atualiza automaticamente o wallpaper da tela de bloqueio com a paleta ativa.
+    LaunchedEffect(palKey, customPals, wpTarget) {
+        applyNcLockWallpaper(ctx, nc, wpTarget)
+    }
 
     // --- Estados de hardware (RAM, bateria, rede, sensores) e controle de mídia ---
     val device = remember { DeviceState(ctx) }
@@ -140,12 +146,12 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
     LaunchedEffect(app.homeSignal) { scr = Scr.HOME }
     // Bloqueia saída acidental da home pelo botão Voltar; se estiver em sub-tela, volta para a home.
     BackHandler(enabled = true) { if (scr != Scr.HOME) scr = Scr.HOME }
-    var vaultEntries by remember { mutableStateOf(prefs.vaultEntries()) }
 
     // --- Listas persistidas de atalhos: Dock, Recentes (Quickhacks) e Daemons ---
     var dock by remember { mutableStateOf(prefs.dock()) }
     var recents by remember { mutableStateOf(prefs.recents()) }
     var daemons by remember { mutableStateOf(prefs.daemons()) }
+    var vault by remember { mutableStateOf(prefs.vaultEntries()) }
     val homeScroll = rememberScrollState()
 
     // Abre um aplicativo pelo packageName; se for o app virtual de config, abre `Scr.SETTINGS`,
@@ -307,6 +313,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         fxSecs = fxSecs,
         fxWake = fxWake,
         fxOver = fxOver,
+        wpTarget = wpTarget,
         notifOk = media.hasAccess,
         a11yOk = remember(app.resumeTick) { navServiceEnabled(ctx) },
         a11yRunning = NavState.running,
@@ -352,6 +359,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         onFxSecs = { fxSecs = it; prefs.fxSecs = it },
         onFxWake = { fxWake = it; prefs.fxWake = it },
         onFxOver = { fxOver = it; prefs.fxOver = it },
+        onWpTarget = { wpTarget = it; prefs.wpTarget = it },
         testFx = { sec -> NavState.service?.testFx(sec * 1000L) },
         copyAdb = {
             val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -426,29 +434,8 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 }
             }
 
-            // 3. Vault: tela de notas com entrada/saída horizontal.
-            AnimatedVisibility(
-                visible = scr == Scr.VAULT,
-                enter = slideInHorizontally { it },
-                exit = slideOutHorizontally { it },
-            ) {
-                VaultScreen(
-                    entries = vaultEntries,
-                    onSaveEntry = { entry ->
-                        vaultEntries = (listOf(entry) + vaultEntries.filter { it.id != entry.id })
-                            .sortedByDescending { it.updatedAt }
-                        prefs.saveVaultEntries(vaultEntries)
-                    },
-                    onDeleteEntry = { id ->
-                        vaultEntries = vaultEntries.filterNot { it.id == id }
-                        prefs.saveVaultEntries(vaultEntries)
-                    },
-                    onBackHome = { scr = Scr.HOME },
-                )
-            }
-
-            // 4. Dock permanece acessível na Home, Vault e durante arrasto.
-            if (scr == Scr.HOME || scr == Scr.VAULT || host.info != null) {
+            // 3. Dock fixa na base (fica por cima da gaveta apenas enquanto um app está sendo arrastado)
+            if (scr == Scr.HOME || host.info != null) {
                 Dock(
                     slots = dock,
                     apps = byPkg,
@@ -472,6 +459,28 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 exit = slideOutVertically { it },
             ) {
                 SettingsScreen(settings, actions)
+            }
+
+            // 4b. Cofre (Vault): abre deslizando a Home para a esquerda
+            AnimatedVisibility(
+                visible = scr == Scr.VAULT,
+                enter = slideInHorizontally { it },
+                exit = slideOutHorizontally { it },
+            ) {
+                VaultScreen(
+                    entries = vault,
+                    onSaveEntry = { e ->
+                        val l = listOf(e) + vault.filter { it.id != e.id }
+                        vault = l
+                        prefs.saveVaultEntries(l)
+                    },
+                    onDeleteEntry = { id ->
+                        val l = vault.filter { it.id != id }
+                        vault = l
+                        prefs.saveVaultEntries(l)
+                    },
+                    onBackHome = { scr = Scr.HOME },
+                )
             }
 
             // 5. Ícone fantasma que acompanha o dedo durante um gesto de arrastar
