@@ -16,33 +16,56 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 
-/** Quantos apps cabem na gaveta DAEMONS. */
+/** Quantidade total de slots disponíveis na gaveta DAEMONS. */
 const val DAEMON_SLOTS = 8
 
-/** from = -1 vem da gaveta de apps; 0..3 vem da dock; 10..15 vem da gaveta DAEMONS (10 + posição). */
+/**
+ * Snapshot imutável de um arrasto em andamento:
+ * - [pkg]: packageName do aplicativo sendo arrastado
+ * - [from]: origem do item (`< 0` / `-1` = gaveta de apps; `0..3` = slot da Dock; `10 + i` = slot `i` dos Daemons)
+ * - [pos]: coordenada atual do ponteiro em relação à raiz da janela/tela
+ */
 class DragInfo(val pkg: String, val from: Int, val pos: Offset)
 
+/**
+ * Coordenador central de drag-and-drop entre a Gaveta de Apps, a Dock e os Daemons.
+ * Expõe estados reativos para o Compose desenhar o ícone fantasma, destacar alvos (hover)
+ * e resolver onde o item foi solto ao encerrar o gesto.
+ */
 class DragHost {
+    // Estado ativo do arrasto; `null` quando nenhum item está sendo arrastado no momento.
     var info by mutableStateOf<DragInfo?>(null)
+
+    // Limites retangulares da Dock em coordenadas da raiz, atualizados via `onGloballyPositioned`.
     var dockBounds: Rect = Rect.Zero
 
-    /** Linhas da gaveta DAEMONS (preenchidas pela tela inicial) para saber onde o app foi solto. */
+    /** Coordenadas de cada linha da gaveta DAEMONS (preenchidas pela HomeScreen) para hit-testing na soltura. */
     val daemonRows = arrayOfNulls<LayoutCoordinates>(DAEMON_SLOTS)
+
+    // Callback disparado quando o gesto termina normalmente com um `DragInfo` válido.
     var onDrop: (DragInfo) -> Unit = {}
+
+    // Instante (`uptimeMillis`) em que o último arrasto terminou ou foi cancelado.
     private var lastEnd = 0L
 
-    /** Evita que soltar o dedo depois de arrastar também conte como toque no app. */
+    /**
+     * Bloqueia cliques acidentais enquanto o dedo ainda está arrastando ou nos primeiros 300ms
+     * após soltar, evitando que o final do gesto abra o aplicativo sem querer.
+     */
     val blockClicks: Boolean
         get() = info != null || SystemClock.uptimeMillis() - lastEnd < 300
 
+    // Inicia um novo arrasto na posição inicial `pos` (em coordenadas da raiz).
     fun start(pkg: String, from: Int, pos: Offset) {
         info = DragInfo(pkg, from, pos)
     }
 
+    // Atualiza a posição do item arrastado somando o delta `d` do movimento do ponteiro.
     fun move(d: Offset) {
         info = info?.let { DragInfo(it.pkg, it.from, it.pos + d) }
     }
 
+    // Finaliza o arrasto, limpa o estado visual e notifica `onDrop` se havia um arrasto ativo.
     fun end() {
         val i = info
         info = null
@@ -50,7 +73,10 @@ class DragHost {
         if (i != null) onDrop(i)
     }
 
-    /** Posição (0..5) da linha DAEMONS sob o ponto, ou -1. */
+    /**
+     * Retorna o índice (`0 until DAEMON_SLOTS`) da linha DAEMONS que contém o ponto `p`,
+     * ou `-1` se o ponto não estiver sobre nenhuma linha anexada à composição.
+     */
     fun daemonSlotAt(p: Offset): Int {
         for (i in daemonRows.indices) {
             val c = daemonRows[i] ?: continue
@@ -61,13 +87,18 @@ class DragHost {
         return -1
     }
 
+    // Cancela o arrasto (ex.: gesto interrompido pelo sistema) sem disparar `onDrop`.
     fun cancel() {
         info = null
         lastEnd = SystemClock.uptimeMillis()
     }
 }
 
-/** Índice (0..3) do espaço da dock sob o ponto, ou -1 se estiver fora da dock. */
+/**
+ * Calcula qual dos 4 slots fixáveis da Dock (`0..3`) está sob o ponto `p` (em coordenadas da raiz),
+ * ou `-1` se estiver fora da área da Dock (com tolerância vertical de 60px acima/abaixo).
+ * A Dock possui 5 colunas no total: coluna `0` é o botão "APPS" e colunas `1..4` são os 4 slots.
+ */
 fun slotAt(b: Rect, p: Offset): Int {
     if (b.width <= 0f) return -1
     if (p.y < b.top - 60f || p.y > b.bottom + 60f || p.x < b.left || p.x > b.right) return -1
@@ -75,7 +106,13 @@ fun slotAt(b: Rect, p: Offset): Int {
     return (col - 1).coerceIn(0, 3)
 }
 
+/**
+ * Modifier que transforma um composable em origem de arrasto após toque longo (`long press`).
+ * Calcula a posição absoluta do componente na raiz da tela e converte os toques locais
+ * para coordenadas globais (`origin + off`) antes de repassar ao `DragHost`.
+ */
 fun Modifier.dragSource(pkg: String, from: Int, host: DragHost): Modifier = composed {
+    // Posição do canto superior esquerdo deste componente na raiz da tela.
     var origin by remember { mutableStateOf(Offset.Zero) }
     this
         .onGloballyPositioned { origin = it.positionInRoot() }
@@ -83,6 +120,7 @@ fun Modifier.dragSource(pkg: String, from: Int, host: DragHost): Modifier = comp
             detectDragGesturesAfterLongPress(
                 onDragStart = { off -> host.start(pkg, from, origin + off) },
                 onDrag = { change, amount ->
+                    // Consome o evento para evitar que listas/containers pai rolem durante o arrasto.
                     change.consume()
                     host.move(amount)
                 },

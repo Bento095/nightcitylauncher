@@ -1,9 +1,9 @@
 package com.nightcity.launcher
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -30,19 +30,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+// Comando ADB necessário para conceder `WRITE_SECURE_SETTINGS` ao pacote do launcher
+// (permite alternar economia de bateria ou correção monocromática do sistema programaticamente).
 const val ADB_CMD = "adb shell pm grant com.nightcity.launcher android.permission.WRITE_SECURE_SETTINGS"
 
+/**
+ * Snapshot imutável com todos os valores atuais e status de permissões/serviços
+ * consumidos pela tela de configurações.
+ */
 class SettingsState(
     val palKey: String,
     val custom: List<NcPalette>,
@@ -68,6 +74,10 @@ class SettingsState(
     val secureOk: Boolean,
 )
 
+/**
+ * Conjunto de callbacks disparados pela UI de configurações para alterar preferências,
+ * gerenciar paletas, testar efeitos OLED, copiar comandos ADB e abrir telas/permissões do sistema.
+ */
 class SettingsActions(
     val onClose: () -> Unit,
     val onPal: (String) -> Unit,
@@ -99,7 +109,7 @@ class SettingsActions(
 
 // ---------------------------------------------------------------- blocos reutilizáveis
 
-/** Seção retrátil: toque no título para abrir/fechar. */
+/** Seção retrátil (accordion): toque no cabeçalho expande ou recolhe o conteúdo interno. */
 @Composable
 private fun Fold(
     title: String,
@@ -128,12 +138,14 @@ private fun Fold(
     }
 }
 
+// Nota explicativa discreta em fonte monoespaçada para orientações técnicas ou limitações do Android.
 @Composable
 private fun Note(text: String) {
     val nc = LocalNc.current
     Tx(text, nc.dim, 10, mono = true, maxLines = 4)
 }
 
+// Linha de botões seletora genérica para um conjunto tipado de opções (`List<Pair<Rótulo, Valor>>`).
 @Composable
 private fun <T> Opts(options: List<Pair<String, T>>, selected: T, onSel: (T) -> Unit) {
     val nc = LocalNc.current
@@ -153,6 +165,7 @@ private fun <T> Opts(options: List<Pair<String, T>>, selected: T, onSel: (T) -> 
     }
 }
 
+// Linha de status para permissões e serviços, exibindo estado atual (LIGADO/DESLIGADO) e botão de ação.
 @Composable
 private fun StatusLine(label: String, ok: Boolean?, action: String, onClick: () -> Unit) {
     val nc = LocalNc.current
@@ -171,6 +184,7 @@ private fun StatusLine(label: String, ok: Boolean?, action: String, onClick: () 
     }
 }
 
+// Campo de texto em linha única estilizado como terminal monoespaçado.
 @Composable
 private fun TextBox(value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val nc = LocalNc.current
@@ -188,9 +202,11 @@ private fun TextBox(value: String, onChange: (String) -> Unit, modifier: Modifie
 
 // ---------------------------------------------------------------- paletas
 
+// Converte uma string hex em `Color` opaca ou devolve `fallback` se o hex for inválido.
 private fun hexColor(s: String, fallback: Color): Color =
     parseHex(s)?.let { Color(0xFF000000L or it) } ?: fallback
 
+// Cartão de seleção de paleta com amostra das 3 cores principais (y, c, r) e ações de editar/excluir para temas customizados.
 @Composable
 private fun PalCell(
     p: NcPalette,
@@ -222,9 +238,14 @@ private fun PalCell(
     }
 }
 
+// Converte valores HSV (matiz 0..360, saturação 0..1, brilho/valor 0..1) em `Color` Compose.
 private fun hsvColor(h: Float, s: Float, v: Float): Color =
     Color(android.graphics.Color.HSVToColor(floatArrayOf(h, s, v)))
 
+/**
+ * Seletor visual de cores interativo com plano Saturação x Brilho e barra de Matiz (Hue)
+ * com suporte a toque e arrasto.
+ */
 @Composable
 private fun ColorPicker(value: String, onChange: (String) -> Unit) {
     val parsed = parseHex(value)?.let { Color(0xFF000000L or it) } ?: Color.White
@@ -235,14 +256,17 @@ private fun ColorPicker(value: String, onChange: (String) -> Unit) {
     var sat by remember(value) { mutableStateOf(hsv[1]) }
     var brightness by remember(value) { mutableStateOf(hsv[2]) }
 
+    // Formata a cor atual em `#RRGGBB` e envia para o campo/editor pai.
     fun publish() {
         val rgb = hsvColor(hue, sat, brightness).toArgb() and 0xFFFFFF
         onChange("#%06X".format(rgb))
     }
+
     Column(
         Modifier.fillMaxWidth().padding(start = 104.dp, top = 6.dp, bottom = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // Quadrante Saturação (eixo X) x Brilho (eixo Y invertido: topo = 100%, base = 0%).
         Canvas(
             Modifier.fillMaxWidth().height(172.dp)
                 .pointerInput(hue) {
@@ -270,6 +294,8 @@ private fun ColorPicker(value: String, onChange: (String) -> Unit) {
             drawCircle(Color.Black, radius = 8.dp.toPx(), center = marker, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
             drawCircle(Color.White, radius = 6.dp.toPx(), center = marker, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
         }
+
+        // Barra horizontal contínua de matiz (0° a 360°).
         Canvas(
             Modifier.fillMaxWidth().height(18.dp)
                 .pointerInput(Unit) {
@@ -292,14 +318,16 @@ private fun ColorPicker(value: String, onChange: (String) -> Unit) {
             val x = hue / 360f * size.width
             drawRect(Color.White, topLeft = Offset(x - 1.dp.toPx(), 0f), size = androidx.compose.ui.geometry.Size(2.dp.toPx(), size.height))
         }
+
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(24.dp).background(hsvColor(hue, sat, brightness)).border(1.dp, Color.White))
             Spacer(Modifier.width(8.dp))
-            Tx("MATIZ ${hue.toInt()}°  •  SAT ${ (sat * 100).toInt()}%  •  BRILHO ${(brightness * 100).toInt()}%", LocalNc.current.dim, 9, mono = true)
+            Tx("MATIZ ${hue.toInt()}°  •  SAT ${(sat * 100).toInt()}%  •  BRILHO ${(brightness * 100).toInt()}%", LocalNc.current.dim, 9, mono = true)
         }
     }
 }
 
+// Campo de cor hexadecimal acompanhado de amostra visual (`swatch`) que abre/fecha o `ColorPicker`.
 @Composable
 private fun HexField(
     label: String,
@@ -326,6 +354,10 @@ private fun HexField(
     }
 }
 
+/**
+ * Editor completo para criar uma nova paleta ou editar uma paleta customizada existente,
+ * com validação de nome e hexadecimais, prévia em tempo real e botões de salvar/cancelar.
+ */
 @Composable
 private fun PaletteEditor(
     initial: NcPalette?,
@@ -339,6 +371,7 @@ private fun PaletteEditor(
     val labels = listOf("DESTAQUE", "ACENTO", "ALERTA", "FUNDO", "FUNDO 2", "PAINÉIS", "TEXTO APAGADO", "DESLIGADO")
     val vals = remember(initial) { mutableStateListOf<String>().apply { addAll(src.hexList()) } }
     var err by remember(initial) { mutableStateOf("") }
+    // Armazena o índice do campo de cor que está com o `ColorPicker` aberto (ou `null`).
     var activePicker by remember(initial) { mutableStateOf<Int?>(null) }
 
     Column(
@@ -361,7 +394,7 @@ private fun PaletteEditor(
         }
         Note("Cores em hexadecimal de 6 dígitos, ex.: FCEE09")
 
-        // pré-visualização com as cores digitadas
+        // Prévia ao vivo combinando fundo, destaque, acento e alerta.
         val pBg = hexColor(vals[3], Color.Black)
         val pBg2 = hexColor(vals[4], Color.DarkGray)
         val pY = hexColor(vals[0], Color.White)
@@ -388,6 +421,7 @@ private fun PaletteEditor(
                     .weight(1f)
                     .background(nc.y)
                     .clickable {
+                        // Remove caracteres reservadas da serialização (`|` e `;`) antes de salvar.
                         val clean = name.trim().replace("|", "").replace(";", "")
                         val bad = vals.indexOfFirst { parseHex(it) == null }
                         when {
@@ -417,6 +451,7 @@ private fun PaletteEditor(
     }
 }
 
+// Grade de paletas (padrão + customizadas em linhas de 2) e alternância para o `PaletteEditor`.
 @Composable
 private fun PalettesBody(s: SettingsState, a: SettingsActions, current: NcPalette) {
     val nc = LocalNc.current
@@ -457,6 +492,11 @@ private fun PalettesBody(s: SettingsState, a: SettingsActions, current: NcPalett
 
 // ---------------------------------------------------------------- tela
 
+/**
+ * Tela completa de configurações do launcher, organizada em seções retráteis (`Fold`)
+ * para navegação sobreposta, ícones, notificações, efeitos OLED, paletas, filtros de tela,
+ * economia de energia, coordenadas climáticas e permissões/serviços.
+ */
 @Composable
 fun SettingsScreen(s: SettingsState, a: SettingsActions) {
     val nc = LocalNc.current
@@ -470,6 +510,7 @@ fun SettingsScreen(s: SettingsState, a: SettingsActions) {
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        // Cabeçalho com título e botão de fechar.
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -482,6 +523,7 @@ fun SettingsScreen(s: SettingsState, a: SettingsActions) {
         }
         Box(Modifier.fillMaxWidth().height(2.dp).background(nc.y))
 
+        // Posição, visibilidade da linha guia e afastamento da borda da barra de navegação sobreposta.
         Fold("BARRA DE NAVEGAÇÃO", startOpen = true, summary = when (s.navPos) { "l" -> "ESQUERDA"; "r" -> "DIREITA"; else -> "INFERIOR" }) {
             Opts(listOf("INFERIOR" to "b", "ESQUERDA" to "l", "DIREITA" to "r"), s.navPos, a.onPos)
             Opts(listOf("LINHA VISÍVEL" to true, "LINHA OCULTA" to false), s.guide, a.onGuide)
@@ -490,10 +532,12 @@ fun SettingsScreen(s: SettingsState, a: SettingsActions) {
             Note("Aumente se a faixa de gesto brigar com o gesto do sistema. Nas laterais a barra fica um pouco acima do meio da tela.")
         }
 
+        // Alterna entre ícones monocromáticos/monogramas estilizados e ícones originais dos apps.
         Fold("ÍCONES DOS APPS", startOpen = true, summary = if (s.iconMode == "real") "REAL" else "MONOGRAMA") {
             Opts(listOf("MONOGRAMA" to "mono", "REAL" to "real"), s.iconMode, a.onIconMode)
         }
 
+        // Estilo e quantidade máxima de notificações no painel da tela inicial.
         Fold("NOTIFICAÇÕES", startOpen = false, summary = when (s.notifStyle) { "compact" -> "COMPACTO"; "hidden" -> "OCULTO"; else -> "DETALHADO" }) {
             Tx("FORMATO DO PAINEL", nc.dim, 10, mono = true)
             Opts(listOf("COMPACTO" to "compact", "DETALHADO" to "detail", "OCULTO" to "hidden"), s.notifStyle, a.onNotifStyle)
@@ -502,6 +546,7 @@ fun SettingsScreen(s: SettingsState, a: SettingsActions) {
             Note("Vale só para o painel NOTIFICAÇÕES da tela inicial. O visual das notificações do sistema (barra de cima e pop-ups) é controlado pelo próprio sistema e um launcher não consegue trocá-lo. OCULTO mostra só o nome do app.")
         }
 
+        // Configuração e testes de animações/efeitos visuais de notificação para telas OLED.
         Fold(
             "EFEITO DE NOTIFICAÇÃO (OLED)",
             startOpen = false,
@@ -533,10 +578,12 @@ fun SettingsScreen(s: SettingsState, a: SettingsActions) {
             if (!s.a11yRunning) Note("O serviço de acessibilidade não está rodando: ative-o em Permissões e serviços.")
         }
 
+        // Seleção e criação/edição de paletas de cores.
         Fold("PALETAS DE CORES", startOpen = false, summary = current.name) {
             PalettesBody(s, a, current)
         }
 
+        // Filtros de cor/escurecimento (monocromático, paleta, âmbar e escurecimento) e intensidade.
         Fold(
             "FILTROS DE TELA",
             startOpen = false,
@@ -577,12 +624,14 @@ fun SettingsScreen(s: SettingsState, a: SettingsActions) {
             }
         }
 
+        // Controle direto ou via ajustes do modo economia de energia ao tocar no painel DIAGNÓSTICO.
         Fold("ENERGIA (TOQUE NO DIAGNÓSTICO)", startOpen = false, summary = if (s.secureOk) "DIRETO" else "ABRE AJUSTES") {
             StatusLine("Alternar economia de bateria direto", s.secureOk, "COPIAR ADB", a.copyAdb)
             Note(ADB_CMD)
             Note("Sem essa permissão, tocar no DIAGNÓSTICO abre a tela de economia de bateria do sistema. Modos de desempenho próprios do fabricante são controlados pelo sistema e um app comum não consegue trocá-los.")
         }
 
+        // Coordenadas manuais ou automáticas para consulta da previsão do tempo.
         Fold("PREVISÃO: COORDENADAS", startOpen = false, summary = if (s.lat.isBlank()) "AUTO" else "MANUAL") {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.weight(1f)) {
@@ -597,6 +646,7 @@ fun SettingsScreen(s: SettingsState, a: SettingsActions) {
             Note("Vazio = usa a última localização (precisa da permissão de localização).")
         }
 
+        // Atalhos para launcher padrão, notificações, acessibilidade (incluindo reativação se parado) e permissões.
         Fold("PERMISSÕES E SERVIÇOS", startOpen = true) {
             StatusLine("Definir como launcher padrão", null, "ABRIR", a.openHome)
             StatusLine("Acesso a notificações (mídia e painel)", s.notifOk, "ABRIR", a.openNotif)

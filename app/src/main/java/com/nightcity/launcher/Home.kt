@@ -53,37 +53,49 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
+// Formata a hora atual no padrão 24h ("HH:mm") usando o locale padrão do dispositivo.
 private fun timeNow(): String =
     java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
 
+// Monta a linha de data exibida na faixa de status inferior do topo rolável.
 private fun dateLine(): String {
     val d = java.time.LocalDate.now()
     return "DATA %02d %02d %04d".format(d.dayOfMonth, d.monthValue, d.year)
 }
 
+// Converte um timestamp em milissegundos em tempo decorrido compacto ("AGORA", "15M", "3H").
 private fun ago(ms: Long): String {
     val m = (System.currentTimeMillis() - ms) / 60000
     return if (m < 1) "AGORA" else if (m < 60) "${m}M" else "${m / 60}H"
 }
 
+// Formata duração/posição de mídia em milissegundos como "MM:SS".
 private fun fmt(ms: Long): String {
     val s = (ms / 1000).toInt()
     return "${s / 60}:${(s % 60).toString().padStart(2, '0')}"
 }
 
+/**
+ * Relógio digital com animação periódica de glitch (deslocamento horizontal em vermelho/ciano)
+ * e suporte a toque simples (abre alarmes/relógio) e toque longo (abre configurações).
+ */
 @Composable
 fun GlitchClock(onClick: () -> Unit, onLongPress: () -> Unit) {
     val nc = LocalNc.current
+    // Atualiza a string da hora a cada 10 segundos.
     val time by produceState(timeNow()) {
         while (true) {
             value = timeNow()
             delay(10_000)
         }
     }
+
+    // Offset horizontal do glitch; `0` indica estado normal sem deslocamento.
     var gl by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         while (true) {
             delay(5000)
+            // Executa 3 pulsos rápidos alternando esquerda/direita antes de estabilizar.
             repeat(3) { i ->
                 gl = if (i % 2 == 0) 2 else -2
                 delay(70)
@@ -91,6 +103,7 @@ fun GlitchClock(onClick: () -> Unit, onLongPress: () -> Unit) {
             gl = 0
         }
     }
+
     Box(Modifier.pointerInput(Unit) { detectTapGestures(onTap = { onClick() }, onLongPress = { onLongPress() }) }) {
         if (gl != 0) {
             Tx(time, nc.r, 34, true, modifier = Modifier.offset(x = (-gl).dp))
@@ -100,9 +113,14 @@ fun GlitchClock(onClick: () -> Unit, onLongPress: () -> Unit) {
     }
 }
 
+/**
+ * Cartão de controle de mídia com barra de progresso em tempo real, nome da faixa/artista,
+ * etiqueta do player e botões de anterior, play/pause e próxima.
+ */
 @Composable
 fun MediaCard(media: MediaState, onNeedAccess: () -> Unit) {
     val nc = LocalNc.current
+    // Relógio monotônico atualizado a cada segundo para calcular a posição atual da reprodução.
     var now by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
     LaunchedEffect(media.playing) {
         while (true) {
@@ -110,6 +128,7 @@ fun MediaCard(media: MediaState, onNeedAccess: () -> Unit) {
             delay(1000)
         }
     }
+
     val pos = media.position(now)
     val dur = media.durationMs
     val title = when {
@@ -127,7 +146,9 @@ fun MediaCard(media: MediaState, onNeedAccess: () -> Unit) {
         media.hasSession -> (if (media.artist.isNotBlank()) media.artist + "  " else "") + fmt(pos) + "/" + fmt(dur)
         else -> "--:--"
     }
+    // Fração de progresso (0f..1f) usada para preencher a barra horizontal.
     val frac = if (dur > 0) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f
+
     Box(
         Modifier
             .fillMaxWidth()
@@ -137,6 +158,7 @@ fun MediaCard(media: MediaState, onNeedAccess: () -> Unit) {
             .padding(8.dp)
     ) {
         Row {
+            // Badge hexagonal à esquerda com símbolo musical.
             Box(
                 Modifier.size(40.dp, 46.dp).clip(HexShape).background(Color.Black),
                 contentAlignment = Alignment.Center,
@@ -155,6 +177,7 @@ fun MediaCard(media: MediaState, onNeedAccess: () -> Unit) {
                     }
                 }
                 Spacer(Modifier.height(5.dp))
+                // Barra de progresso da faixa em execução.
                 Box(Modifier.fillMaxWidth().height(5.dp).background(Color.Black.copy(alpha = 0.27f))) {
                     Box(Modifier.fillMaxHeight().fillMaxWidth(frac).background(Color.Black))
                 }
@@ -176,6 +199,7 @@ fun MediaCard(media: MediaState, onNeedAccess: () -> Unit) {
     }
 }
 
+// Botão compacto de transporte de mídia usado dentro do `MediaCard`.
 @Composable
 private fun MediaBtn(t: String, onClick: () -> Unit) {
     val nc = LocalNc.current
@@ -184,6 +208,13 @@ private fun MediaBtn(t: String, onClick: () -> Unit) {
     ) { Tx(t, nc.y, 10, mono = true) }
 }
 
+/**
+ * Tela inicial do launcher.
+ * Divide-se em um cabeçalho fixo (relógio, ícones de status, bateria e rede)
+ * e uma coluna rolável com mídia, clima expansível, notificações, faixa de sensores/data,
+ * Quickhacks (recentes), Diagnóstico (RAM/armazenamento/temp/bateria/sparkline),
+ * Daemons (slots fixados por drag-and-drop) e barra de atalhos rápidos.
+ */
 @Composable
 fun HomeScreen(
     device: DeviceState,
@@ -212,6 +243,7 @@ fun HomeScreen(
     onNotifClear: () -> Unit,
 ) {
     val nc = LocalNc.current
+    // Controla se a grade de previsão detalhada por slots está expandida ou recolhida.
     var wxOpen by remember { mutableStateOf(false) }
 
     // Abrir a gaveta de apps: só vale puxando para cima a PARTIR DOS 10% INFERIORES da tela.
@@ -227,7 +259,8 @@ fun HomeScreen(
                 if (source != NestedScrollSource.UserInput || !flag.bottom) return Offset.Zero
                 if (available.y < 0f) {
                     acc += available.y
-                    return Offset(0f, available.y) // segura o conteúdo parado enquanto puxa a gaveta
+                    // Consome o deslocamento para segurar o scroll enquanto o dedo puxa a gaveta.
+                    return Offset(0f, available.y)
                 }
                 acc = (acc + available.y).coerceAtMost(0f)
                 return Offset.Zero
@@ -249,7 +282,7 @@ fun HomeScreen(
         Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                // só observa onde o dedo encostou (não consome nada)
+                // Observa apenas a posição inicial do toque na fase Initial sem consumir o evento.
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                     flag.bottom = down.position.y > size.height * 0.90f
@@ -258,7 +291,7 @@ fun HomeScreen(
             .systemBarsPadding()
             .padding(start = 11.dp, end = 11.dp, top = 8.dp),
     ) {
-        // --- topo FIXO (não rola)
+        // --- Topo FIXO (não rola): relógio, ícones de status ativos, bateria e rede ---
         Column {
             Row(
                 Modifier.fillMaxWidth(),
@@ -292,21 +325,22 @@ fun HomeScreen(
         }
         Spacer(Modifier.height(8.dp))
 
-        // --- tudo abaixo rola POR BAIXO do topo fixo
+        // --- Conteúdo rolável por baixo do topo fixo ---
         Column(
             Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .nestedScroll(conn)
                 .verticalScroll(scroll)
+                // Espaço inferior extra para que os últimos itens não fiquem escondidos atrás da Dock.
                 .padding(bottom = 86.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
 
-            // --- cartão de mídia
+            // --- Cartão de mídia ---
             MediaCard(media, onMediaAccess)
 
-            // --- previsão do tempo
+            // --- Previsão do tempo (toque expande/recolhe os slots horários) ---
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -340,7 +374,7 @@ fun HomeScreen(
                 }
             }
 
-            // --- notificações (formato configurável em Config)
+            // --- Painel de notificações (estilo e limite configuráveis) ---
             NotifPanel(
                 hasAccess = media.hasAccess,
                 items = notifs,
@@ -352,7 +386,7 @@ fun HomeScreen(
                 onClear = onNotifClear,
             )
 
-            // --- faixa de data, Bluetooth, GPS
+            // --- Faixa de data (abre agenda), Bluetooth, GPS e NFC ---
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -372,7 +406,7 @@ fun HomeScreen(
                 if (device.nfcPresent) Tx("NFC", if (device.nfc) nc.c else nc.off, 10, mono = true)
             }
 
-            // --- quickhacks = apps recentes
+            // --- Quickhacks: até 8 aplicativos abertos recentemente ---
             Panel("QUICKHACKS", "RECENTES") {
                 if (recents.isEmpty()) {
                     Tx("> nenhum app recente", nc.dim, 12, mono = true, modifier = Modifier.padding(4.dp))
@@ -398,7 +432,7 @@ fun HomeScreen(
                 }
             }
 
-            // --- diagnóstico
+            // --- Diagnóstico do sistema (toque alterna economia de energia / abre ajustes) ---
             Panel(
                 "DIAGNÓSTICO",
                 "ENERGIA: " + (if (device.saver) "ECONOMIA" else "NORMAL") + " ▸",
@@ -409,6 +443,7 @@ fun HomeScreen(
                     Stat("ARMAZ.", "${device.diskPct}%", device.diskPct, device.diskPct > 90, Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(5.dp))
+                // Temperatura da bateria vem em décimos de grau Celsius (ex.: 320 -> 32°C).
                 val tc = device.battTemp / 10
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Stat("TEMP", "${tc}°C", tc * 100 / 50, tc > 40, Modifier.weight(1f))
@@ -418,7 +453,7 @@ fun HomeScreen(
                 Spark(ramHist)
             }
 
-            // --- DAEMONS
+            // --- Daemons: slots fixados com suporte a drag-and-drop (`from = 10 + i`) ---
             val dHover = host.info?.let { host.daemonSlotAt(it.pos) } ?: -1
             val dragFrom = host.info?.from ?: -2
             val filled = daemons.count { it != null }
@@ -430,6 +465,7 @@ fun HomeScreen(
                     Row(
                         Modifier
                             .fillMaxWidth()
+                            // Registra as coordenadas da linha no `DragHost` para detectar soltura sobre este slot.
                             .onGloballyPositioned { host.daemonRows[i] = it }
                             .then(if (hv) Modifier.background(nc.c) else Modifier)
                             .alpha(if (dragFrom == 10 + i) 0.3f else 1f)
@@ -479,7 +515,7 @@ fun HomeScreen(
                 }
             }
 
-            // --- faixa de acesso rápido: Config do Launcher e Termux (corrigido com parâmetros posicionais)
+            // --- Faixa de acesso rápido: Config do Launcher, Mapas e Termux ---
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -526,6 +562,7 @@ fun HomeScreen(
     }
 }
 
+// Bloco individual de métrica (rótulo, valor textual e barra segmentada `Segs`).
 @Composable
 private fun Stat(label: String, value: String, pct: Int, hot: Boolean, modifier: Modifier) {
     val nc = LocalNc.current
@@ -540,6 +577,10 @@ private fun Stat(label: String, value: String, pct: Int, hot: Boolean, modifier:
 
 // ---------------------------------------------------------------- dock
 
+/**
+ * Barra inferior fixa com botão para abrir a gaveta de apps ("APPS"), 4 slots fixáveis
+ * por arrastar e soltar e suporte a gesto de arrastar para cima para abrir a gaveta.
+ */
 @Composable
 fun Dock(
     slots: List<String?>,
@@ -584,6 +625,7 @@ fun Dock(
     }
 }
 
+// Célula visual de cada item da Dock (suporta ícone real do sistema ou caractere monoespaçado).
 @Composable
 private fun DockCell(
     modifier: Modifier,
@@ -618,10 +660,15 @@ private fun DockCell(
     }
 }
 
+// Flag mutável compartilhada entre o detector inicial de toque e o `NestedScrollConnection`.
 private class SwipeFlag {
     var bottom = false
 }
 
+/**
+ * Painel de notificações ativas com três modos visuais ("compact", "hidden" e detalhado padrão),
+ * descarte individual (`✕`), abertura do `PendingIntent`/app e limpeza em lote.
+ */
 @Composable
 private fun NotifPanel(
     hasAccess: Boolean,

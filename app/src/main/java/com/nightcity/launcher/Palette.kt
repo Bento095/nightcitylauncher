@@ -4,7 +4,17 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 
-/** y = cor principal, c = acento frio, r = alerta/glitch, bg/bg2/pn = fundos, dim/off = textos apagados. */
+/**
+ * Define os papéis cromáticos de um tema do launcher:
+ * - [y]: cor principal / destaque (títulos, bordas ativas, elementos primários)
+ * - [c]: acento frio / secundário (status, indicadores, sub-destaques)
+ * - [r]: alerta / glitch (avisos críticos, picos de uso, deslocamento de glitch)
+ * - [bg]: fundo principal (base da tela)
+ * - [bg2]: fundo secundário (ex.: topo do gradiente de fundo)
+ * - [pn]: superfície de painéis e cartões
+ * - [dim]: textos secundários ou atenuados
+ * - [off]: elementos desativados ou sem foco
+ */
 data class NcPalette(
     val key: String,
     val name: String,
@@ -18,13 +28,18 @@ data class NcPalette(
     val off: Color,
 )
 
+// Converte um valor RGB de 24 bits (0xRRGGBB) em uma `Color` opaca (alfa `0xFF`).
 private fun col(rgb: Long) = Color(0xFF000000L or rgb)
 
+// Construtor auxiliar para declarar paletas de forma compacta usando literais hexadecimais RGB.
 private fun pal(
     key: String, name: String,
     y: Long, c: Long, r: Long, bg: Long, bg2: Long, pn: Long, dim: Long, off: Long,
 ) = NcPalette(key, name, col(y), col(c), col(r), col(bg), col(bg2), col(pn), col(dim), col(off))
 
+/**
+ * Catálogo de paletas pré-configuradas disponíveis no launcher.
+ */
 val Palettes: List<NcPalette> = listOf(
     pal("night", "NIGHT CITY", 0xFCEE09, 0x02D7F2, 0xFF003C, 0x08080C, 0x0D0D14, 0x101018, 0x8A8A52, 0x5C5C3A),
     pal("arasaka", "ARASAKA", 0xFF2A40, 0xFFD1D6, 0xFF7A00, 0x0B0507, 0x150709, 0x1A0B0E, 0x9A5A62, 0x5A3A3E),
@@ -51,26 +66,41 @@ val Palettes: List<NcPalette> = listOf(
     pal("monochrome", "MONOCHROME BW", 0xFFFFFF, 0xC8C8C8, 0x888888, 0x050505, 0x111111, 0x1E1E1E, 0x777777, 0x444444),
     pal("nightshift", "NIGHTSHIFT", 0x00F0FF, 0xA5FCFF, 0x00A6B8, 0x000000, 0x02090C, 0x071318, 0x54858C, 0x29464D),
     pal("biolume", "BIOLUME", 0x39FF14, 0x7CFFB2, 0x00E6CB, 0x0B0F0A, 0x0F1F1A, 0x1A3A3A, 0x4A6B5F, 0x2A3A3F),
-    )
+)
 
+// Busca uma paleta padrão pela `key`; caso não exista, cai para a primeira (`NIGHT CITY`).
 fun paletteByKey(key: String): NcPalette = Palettes.firstOrNull { it.key == key } ?: Palettes[0]
 
+// CompositionLocal para propagar a `NcPalette` ativa pela árvore Compose sem passar o objeto manualmente.
 val LocalNc = staticCompositionLocalOf { Palettes[0] }
 
-/** Procura primeiro nas paletas criadas pelo usuário, depois nas de fábrica. */
+/**
+ * Resolve a paleta ativa dando prioridade às paletas criadas pelo usuário (`custom`)
+ * e recorrendo às paletas embutidas (`Palettes`) como fallback.
+ */
 fun paletteFrom(key: String, custom: List<NcPalette>): NcPalette =
     custom.firstOrNull { it.key == key } ?: paletteByKey(key)
 
-/** "FCEE09" ou "#FCEE09" -> valor RGB; null se for inválido. */
+/**
+ * Converte uma string hexadecimal de 6 dígitos (com ou sem `#` e espaços) em um `Long` RGB.
+ * Retorna `null` se o formato for inválido.
+ */
 fun parseHex(s: String): Long? {
     val t = s.trim().removePrefix("#")
     if (t.length != 6) return null
     return t.toLongOrNull(16)
 }
 
-/** v = [destaque, acento, alerta, fundo, fundo2, painéis, texto apagado, desligado] em RGB. */
+/**
+ * Monta uma `NcPalette` a partir de uma lista de 8 valores RGB na ordem:
+ * `[destaque (y), acento (c), alerta (r), fundo (bg), fundo2 (bg2), painéis (pn), apagado (dim), desligado (off)]`.
+ */
 fun paletteOf(key: String, name: String, v: List<Long>): NcPalette =
     NcPalette(key, name, col(v[0]), col(v[1]), col(v[2]), col(v[3]), col(v[4]), col(v[5]), col(v[6]), col(v[7]))
 
+/**
+ * Exporta as 8 cores da paleta como strings hexadecimais de 6 dígitos (sem alfa),
+ * útil para edição e persistência de paletas customizadas.
+ */
 fun NcPalette.hexList(): List<String> =
     listOf(y, c, r, bg, bg2, pn, dim, off).map { "%06X".format(it.toArgb() and 0xFFFFFF) }

@@ -47,16 +47,30 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
+/**
+ * Destinos possíveis dentro do launcher:
+ * - HOME: tela principal com mídia, clima, quickhacks, diagnóstico e daemons
+ * - DRAWER: gaveta completa de aplicativos instalados
+ * - SETTINGS: tela de configurações de tema, navegação, notificações, filtros e efeitos
+ */
 enum class Scr { HOME, DRAWER, SETTINGS }
 
+// Helper rápido para checar se uma permissão perigosa/runtime está concedida no contexto atual.
 private fun granted(ctx: android.content.Context, perm: String) =
     ContextCompat.checkSelfPermission(ctx, perm) == PackageManager.PERMISSION_GRANTED
 
+/**
+ * Composable raiz do launcher.
+ * Centraliza preferências persistidas, estados de hardware/mídia/clima,
+ * ações de navegação/atalhos, lógica de drag-and-drop e camadas de overlay.
+ */
 @Composable
 fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
     val ctx = LocalContext.current
+    // Instância de preferências memorizada para evitar recriar SharedPreferences a cada recomposição.
     val prefs = remember { Prefs(ctx) }
 
+    // --- Estados reativos espelhando as configurações salvas em `Prefs` ---
     var palKey by remember { mutableStateOf(prefs.palKey) }
     var navPos by remember { mutableStateOf(prefs.navPos) }
     var guide by remember { mutableStateOf(prefs.guide) }
@@ -73,10 +87,15 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
     var fxSecs by remember { mutableStateOf(prefs.fxSecs) }
     var fxWake by remember { mutableStateOf(prefs.fxWake) }
     var fxOver by remember { mutableStateOf(prefs.fxOver) }
+
+    // Resolve a paleta ativa (padrão ou customizada) a partir da chave atual.
     val nc = paletteFrom(palKey, customPals)
 
+    // --- Estados de hardware (RAM, bateria, rede, sensores) e controle de mídia ---
     val device = remember { DeviceState(ctx) }
     val media = remember { MediaState(ctx) }
+
+    // Inicia o monitoramento do dispositivo ao montar e encerra listeners/recursos ao desmontar.
     DisposableEffect(Unit) {
         device.start()
         onDispose {
@@ -84,36 +103,50 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
             media.stop()
         }
     }
+
+    // Sempre que `app.resumeTick` muda (ex.: retorno ao app ou resposta de permissão),
+    // atualiza os dados do dispositivo e reativa o listener de mídia.
     LaunchedEffect(app.resumeTick) {
         device.refresh()
         media.start()
     }
-    // garante que o preto e branco do sistema esteja de acordo com o modo escolhido
+
+    // Garante que o filtro monocromático do sistema reflita a configuração `filterMode`.
     LaunchedEffect(app.resumeTick) {
         applySystemMono(ctx, filterMode == "mono")
     }
-    // serviço dos botões marcado como ligado mas parado (ex.: depois de limpar os recentes): tenta religar
+
+    // Serviço dos botões marcado como ligado mas parado (ex.: depois de limpar os recentes): tenta religar.
     LaunchedEffect(app.resumeTick) {
         delay(1500)
         if (navServiceEnabled(ctx) && !NavState.running) reviveNavService(ctx)
     }
 
+    // --- Lista de aplicativos instalados + app virtual de configurações ---
     var apps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
     LaunchedEffect(app.resumeTick) {
+        // Carrega os pacotes em thread de I/O para não travar a UI.
         apps = withContext(Dispatchers.IO) { loadApps(ctx) }
     }
     val allApps = remember(apps) { (apps + ConfigApp).sortedBy { it.label.lowercase() } }
+    // Mapa de acesso rápido por packageName para resolver nomes/ícones em O(1).
     val byPkg = remember(allApps) { allApps.associateBy { it.pkg } }
 
+    // --- Navegação interna entre telas e interceptação do botão Voltar ---
     var scr by remember { mutableStateOf(Scr.HOME) }
+    // Ao receber sinal de Home (ex.: pressionar Home estando no launcher), retorna para `Scr.HOME`.
     LaunchedEffect(app.homeSignal) { scr = Scr.HOME }
+    // Bloqueia saída acidental da home pelo botão Voltar; se estiver em sub-tela, volta para a home.
     BackHandler(enabled = true) { if (scr != Scr.HOME) scr = Scr.HOME }
 
+    // --- Listas persistidas de atalhos: Dock, Recentes (Quickhacks) e Daemons ---
     var dock by remember { mutableStateOf(prefs.dock()) }
     var recents by remember { mutableStateOf(prefs.recents()) }
     var daemons by remember { mutableStateOf(prefs.daemons()) }
     val homeScroll = rememberScrollState()
 
+    // Abre um aplicativo pelo packageName; se for o app virtual de config, abre `Scr.SETTINGS`,
+    // caso contrário registra nos recentes (até 10 itens) e persiste.
     fun openApp(pkg: String) {
         if (pkg == CONFIG_PKG) {
             scr = Scr.SETTINGS
@@ -126,7 +159,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         }
     }
 
-    // toque no relógio: abre o app Relógio/Alarmes (e, se não houver, tenta os pacotes conhecidos)
+    // Toque no relógio: abre o app Relógio/Alarmes (e, se não houver, tenta os pacotes conhecidos).
     fun openClock() {
         try {
             val i = Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -136,7 +169,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         }
     }
 
-    // toque na data: abre o app Agenda padrão
+    // Toque na data: abre o app Agenda padrão.
     fun openCalendar() {
         try {
             val i = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR)
@@ -147,7 +180,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         }
     }
 
-    // [ MAPS // NAV ]: abre o app de mapas padrão
+    // [ MAPS // NAV ]: abre o app de mapas padrão (com fallback para URI `geo:` e Google Maps).
     fun openMaps() {
         try {
             val i = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_MAPS)
@@ -163,7 +196,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         }
     }
 
-    // toque no DIAGNÓSTICO: alterna a economia de bateria (se o adb liberou) ou abre a tela do sistema
+    // Toque no DIAGNÓSTICO: alterna a economia de bateria (se o adb liberou) ou abre a tela do sistema.
     fun powerAction() {
         if (!setBatterySaver(ctx, !device.saver)) {
             safeStart(ctx, Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS))
@@ -171,7 +204,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         device.refresh()
     }
 
-    // histórico de RAM para o gráfico
+    // Histórico de uso de RAM (últimas 30 amostras, coletadas a cada 2s) para o sparkline gráfico.
     val ramHist = remember { mutableStateListOf<Int>() }
     LaunchedEffect(Unit) {
         while (true) {
@@ -182,7 +215,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         }
     }
 
-    // previsão do tempo (atualiza a cada 30 min)
+    // Previsão do tempo (atualiza a cada 30 min com base na latitude/longitude configuradas).
     var wx by remember { mutableStateOf<WxData?>(null) }
     var wxMsg by remember { mutableStateOf("CARREGANDO...") }
     LaunchedEffect(app.resumeTick, lat, lon) {
@@ -195,7 +228,8 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         }
     }
 
-    // arrastar e soltar na dock
+    // --- Sistema unificado de arrastar e soltar (Dock e Daemons) ---
+    // Convenção de `from`: < 0 = veio da gaveta; 0..3 = slot da Dock; >= 10 = `10 + slotIndex` nos Daemons.
     val host = remember { DragHost() }
     host.onDrop = { i ->
         val ds = host.daemonSlotAt(i.pos)
@@ -205,7 +239,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         val dk = dock.toMutableList()
         val dm = daemons.toMutableList()
         when {
-            // soltou na gaveta DAEMONS
+            // Soltou na gaveta DAEMONS: reordena entre slots ou fixa/move um app para o slot alvo.
             ds >= 0 -> {
                 if (fromDaemon) {
                     val src = i.from - 10
@@ -219,7 +253,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 }
                 if (i.from < 0) scr = Scr.HOME
             }
-            // soltou na dock
+            // Soltou na dock: reordena entre slots da dock ou fixa um app vindo de fora.
             ks >= 0 -> {
                 if (fromDock) {
                     val o = dk[ks]
@@ -232,7 +266,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                     if (i.from < 0) scr = Scr.HOME
                 }
             }
-            // soltou fora: remove da lista de onde saiu
+            // Soltou fora de qualquer alvo válido: remove do slot de origem (se veio da Dock ou Daemons).
             fromDock -> dk[i.from] = null
             fromDaemon -> dm[i.from - 10] = null
         }
@@ -241,14 +275,18 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         prefs.saveDock(dk)
         prefs.saveDaemons(dm)
     }
-    // ao começar a arrastar, rola a tela inicial até a gaveta DAEMONS para ela ficar à vista
+
+    // Ao começar a arrastar, rola a tela inicial até o fim para deixar a gaveta DAEMONS visível.
     val dragging = host.info != null
     LaunchedEffect(dragging) {
         if (dragging) homeScroll.animateScrollTo(homeScroll.maxValue)
     }
+
+    // Índice do slot da Dock sob o dedo durante o arrasto (-1 se fora).
     val hover = host.info?.let { slotAt(host.dockBounds, it.pos) } ?: -1
     val realIcons = iconMode == "real"
 
+    // --- Pacote de estado e callbacks para a tela de Configurações ---
     val settings = SettingsState(
         palKey = palKey,
         custom = customPals,
@@ -303,7 +341,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         onFilterMode = {
             filterMode = it
             prefs.filterMode = it
-            // preto e branco real (se a permissão por adb existir); os demais modos são desenhados pelo serviço
+            // Preto e branco real (se a permissão por adb existir); os demais modos são desenhados pelo serviço.
             applySystemMono(ctx, it == "mono")
         },
         onFilterLevel = { filterLevel = it; prefs.filterLevel = it },
@@ -327,10 +365,13 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         openHome = { safeStart(ctx, Intent(Settings.ACTION_HOME_SETTINGS)) },
     )
 
+    // Resolve os pares (AppInfo, timestamp) dos recentes ignorando pacotes não encontrados.
     val recentApps = recents.mapNotNull { (p, t) -> byPkg[p]?.let { it to t } }
 
+    // --- Fornece a paleta ativa via CompositionLocal e monta as camadas da UI ---
     CompositionLocalProvider(LocalNc provides nc) {
         Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(nc.bg2, nc.bg)))) {
+            // 1. Tela inicial principal
             HomeScreen(
                 device = device,
                 media = media,
@@ -364,6 +405,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 onNotifClear = { NotifStore.dismissAll() },
             )
 
+            // 2. Gaveta de apps (desliza de baixo para cima; fica semitransparente durante drag)
             AnimatedVisibility(
                 visible = scr == Scr.DRAWER,
                 enter = slideInVertically { it },
@@ -380,7 +422,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 }
             }
 
-            // a dock fica por cima da gaveta só enquanto um app está sendo arrastado
+            // 3. Dock fixa na base (fica por cima da gaveta apenas enquanto um app está sendo arrastado)
             if (scr == Scr.HOME || host.info != null) {
                 Dock(
                     slots = dock,
@@ -398,6 +440,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 )
             }
 
+            // 4. Tela de configurações
             AnimatedVisibility(
                 visible = scr == Scr.SETTINGS,
                 enter = slideInVertically { it },
@@ -406,7 +449,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 SettingsScreen(settings, actions)
             }
 
-            // ícone fantasma durante o arrasto
+            // 5. Ícone fantasma que acompanha o dedo durante um gesto de arrastar
             host.info?.let { i ->
                 val a = byPkg[i.pkg]
                 Box(
@@ -419,7 +462,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 ) { Tx(a?.mono ?: "??", Color.Black, 18, true) }
             }
 
-            // linhas de varredura (decorativas, não recebem toque)
+            // 6. Overlay decorativo de scanlines (linhas horizontais sutis, sem interceptar toques)
             Canvas(Modifier.fillMaxSize()) {
                 val step = 3.dp.toPx()
                 var y = 0f
