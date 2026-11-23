@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -149,6 +150,18 @@ fun MediaCard(media: MediaState, onNeedAccess: () -> Unit) {
     // Fração de progresso (0f..1f) usada para preencher a barra horizontal.
     val frac = if (dur > 0) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f
 
+    var mediaGl by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(6500)
+            repeat(3) { i ->
+                mediaGl = if (i % 2 == 0) 2 else -2
+                delay(65)
+            }
+            mediaGl = 0
+        }
+    }
+
     Box(
         Modifier
             .fillMaxWidth()
@@ -170,7 +183,13 @@ fun MediaCard(media: MediaState, onNeedAccess: () -> Unit) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(Modifier.weight(1f)) { Tx(title, Color.Black, 20, true) }
+                    Box(Modifier.weight(1f)) {
+                        if (mediaGl != 0) {
+                            Tx(title, nc.r, 20, true, modifier = Modifier.offset(x = (-mediaGl).dp))
+                            Tx(title, nc.c, 20, true, modifier = Modifier.offset(x = mediaGl.dp))
+                        }
+                        Tx(title, Color.Black, 20, true)
+                    }
                     Spacer(Modifier.width(6.dp))
                     Box(Modifier.background(Color.Black).padding(horizontal = 5.dp)) {
                         Tx(tag, nc.y, 10, mono = true)
@@ -194,6 +213,17 @@ fun MediaCard(media: MediaState, onNeedAccess: () -> Unit) {
                         MediaBtn("▷▷") { media.next() }
                     }
                 }
+            }
+        }
+        var mediaGl by remember { mutableIntStateOf(0) }
+        LaunchedEffect(Unit) {
+            while (true) {
+                delay(6500)
+                repeat(3) { i ->
+                    mediaGl = if (i % 2 == 0) 2 else -2
+                    delay(65)
+                }
+                mediaGl = 0
             }
         }
     }
@@ -228,6 +258,7 @@ fun HomeScreen(
     onClock: () -> Unit,
     onMediaAccess: () -> Unit,
     onSwipeUp: () -> Unit,
+    onSwipeLeft: () -> Unit = {},
     daemons: List<String?>,
     apps: Map<String, AppInfo>,
     host: DragHost,
@@ -249,6 +280,7 @@ fun HomeScreen(
     // Abrir a gaveta de apps: só vale puxando para cima a PARTIR DOS 10% INFERIORES da tela.
     // Em qualquer outro ponto, arrastar apenas rola o conteúdo.
     val swipeUp by rememberUpdatedState(onSwipeUp)
+    val swipeLeft by rememberUpdatedState(onSwipeLeft)
     val flag = remember { SwipeFlag() }
     val thresholdPx = with(LocalDensity.current) { 72.dp.toPx() }
     val conn = remember {
@@ -281,6 +313,16 @@ fun HomeScreen(
     Column(
         Modifier
             .fillMaxSize()
+            .pointerInput(Unit) {
+                // Detecta deslize horizontal para abrir o Vault.
+                var total = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { total = 0f },
+                    onDragEnd = { if (total < -90f) onSwipeLeft() },
+                    onDragCancel = { total = 0f },
+                    onHorizontalDrag = { _, delta -> total += delta },
+                )
+            }
             .pointerInput(Unit) {
                 // Observa apenas a posição inicial do toque na fase Initial sem consumir o evento.
                 awaitEachGesture {

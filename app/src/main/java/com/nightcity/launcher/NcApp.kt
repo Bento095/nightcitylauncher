@@ -11,6 +11,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -53,7 +55,7 @@ import kotlin.math.roundToInt
  * - DRAWER: gaveta completa de aplicativos instalados
  * - SETTINGS: tela de configurações de tema, navegação, notificações, filtros e efeitos
  */
-enum class Scr { HOME, DRAWER, SETTINGS }
+enum class Scr { HOME, DRAWER, SETTINGS, VAULT }
 
 // Helper rápido para checar se uma permissão perigosa/runtime está concedida no contexto atual.
 private fun granted(ctx: android.content.Context, perm: String) =
@@ -138,6 +140,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
     LaunchedEffect(app.homeSignal) { scr = Scr.HOME }
     // Bloqueia saída acidental da home pelo botão Voltar; se estiver em sub-tela, volta para a home.
     BackHandler(enabled = true) { if (scr != Scr.HOME) scr = Scr.HOME }
+    var vaultEntries by remember { mutableStateOf(prefs.vaultEntries()) }
 
     // --- Listas persistidas de atalhos: Dock, Recentes (Quickhacks) e Daemons ---
     var dock by remember { mutableStateOf(prefs.dock()) }
@@ -384,6 +387,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 onClock = { openClock() },
                 onMediaAccess = { safeStart(ctx, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
                 onSwipeUp = { scr = Scr.DRAWER },
+                onSwipeLeft = { scr = Scr.VAULT },
                 daemons = daemons,
                 apps = byPkg,
                 host = host,
@@ -422,8 +426,29 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 }
             }
 
-            // 3. Dock fixa na base (fica por cima da gaveta apenas enquanto um app está sendo arrastado)
-            if (scr == Scr.HOME || host.info != null) {
+            // 3. Vault: tela de notas com entrada/saída horizontal.
+            AnimatedVisibility(
+                visible = scr == Scr.VAULT,
+                enter = slideInHorizontally { it },
+                exit = slideOutHorizontally { it },
+            ) {
+                VaultScreen(
+                    entries = vaultEntries,
+                    onSaveEntry = { entry ->
+                        vaultEntries = (listOf(entry) + vaultEntries.filter { it.id != entry.id })
+                            .sortedByDescending { it.updatedAt }
+                        prefs.saveVaultEntries(vaultEntries)
+                    },
+                    onDeleteEntry = { id ->
+                        vaultEntries = vaultEntries.filterNot { it.id == id }
+                        prefs.saveVaultEntries(vaultEntries)
+                    },
+                    onBackHome = { scr = Scr.HOME },
+                )
+            }
+
+            // 4. Dock permanece acessível na Home, Vault e durante arrasto.
+            if (scr == Scr.HOME || scr == Scr.VAULT || host.info != null) {
                 Dock(
                     slots = dock,
                     apps = byPkg,
