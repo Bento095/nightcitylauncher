@@ -3,6 +3,9 @@ package com.nightcity.launcher
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.net.Uri
+import android.os.storage.StorageManager
+import android.provider.Settings
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.drawable.toBitmap
@@ -53,6 +56,33 @@ fun launchApp(ctx: Context, pkg: String): Boolean {
     } catch (e: Exception) {
         false
     }
+}
+
+/** Abre a tela padrão do sistema "Informações do app" (permissões, armazenamento, limpar dados, desinstalar). */
+fun openAppInfo(ctx: Context, pkg: String): Boolean = try {
+    ctx.startActivity(
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+    )
+    true
+} catch (e: Exception) {
+    false
+}
+
+/** Abre o gerenciamento de armazenamento do sistema, com alternativas caso o aparelho não tenha a primeira tela. */
+fun openStorageSettings(ctx: Context): Boolean {
+    val actions = listOf(
+        StorageManager.ACTION_MANAGE_STORAGE,
+        Settings.ACTION_INTERNAL_STORAGE_SETTINGS,
+        Settings.ACTION_SETTINGS,
+    )
+    for (a in actions) {
+        try {
+            ctx.startActivity(Intent(a).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            return true
+        } catch (e: Exception) { }
+    }
+    return false
 }
 
 /** Cache simples dos ícones reais (usado só quando a opção "ÍCONES: REAL" está ligada). */

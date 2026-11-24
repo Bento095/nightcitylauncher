@@ -403,6 +403,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 onCalendar = { openCalendar() },
                 onMaps = { openMaps() },
                 onPower = { powerAction() },
+                onStorage = { openStorageSettings(ctx) },
                 notifs = NotifStore.items,
                 notifStyle = notifStyle,
                 notifMax = notifMax,
@@ -430,6 +431,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                         realIcons = realIcons,
                         onClose = { scr = Scr.HOME },
                         onOpen = { openApp(it) },
+                        onManage = { openAppInfo(ctx, it) },
                     )
                 }
             }

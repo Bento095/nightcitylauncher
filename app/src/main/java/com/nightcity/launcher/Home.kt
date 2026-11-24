@@ -266,6 +266,7 @@ fun HomeScreen(
     onCalendar: () -> Unit,
     onMaps: () -> Unit,
     onPower: () -> Unit,
+    onStorage: () -> Unit = {},
     notifs: List<NotifItem>,
     notifStyle: String,
     notifMax: Int,
@@ -482,7 +483,7 @@ fun HomeScreen(
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Stat("RAM", "${device.ramPct}%", device.ramPct, device.ramPct > 85, Modifier.weight(1f))
-                    Stat("ARMAZ.", "${device.diskPct}%", device.diskPct, device.diskPct > 90, Modifier.weight(1f))
+                    Stat("ARMAZ.", "${device.diskPct}%", device.diskPct, device.diskPct > 90, Modifier.weight(1f), onClick = onStorage)
                 }
                 Spacer(Modifier.height(5.dp))
                 // Temperatura da bateria vem em décimos de grau Celsius (ex.: 320 -> 32°C).
@@ -606,11 +607,18 @@ fun HomeScreen(
 
 // Bloco individual de métrica (rótulo, valor textual e barra segmentada `Segs`).
 @Composable
-private fun Stat(label: String, value: String, pct: Int, hot: Boolean, modifier: Modifier) {
+private fun Stat(
+    label: String,
+    value: String,
+    pct: Int,
+    hot: Boolean,
+    modifier: Modifier,
+    onClick: (() -> Unit)? = null,
+) {
     val nc = LocalNc.current
-    Column(modifier) {
+    Column(if (onClick != null) modifier.clickable { onClick() } else modifier) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Tx(label, nc.y, 11, mono = true)
+            Tx(if (onClick != null) "$label ▸" else label, nc.y, 11, mono = true)
             Tx(value, nc.c, 11, mono = true)
         }
         Segs(pct, hot)

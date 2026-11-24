@@ -1,16 +1,24 @@
 package com.nightcity.launcher
 
 import android.os.SystemClock
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -106,26 +114,66 @@ fun slotAt(b: Rect, p: Offset): Int {
     return (col - 1).coerceIn(0, 3)
 }
 
+/** Tempo total (desde o toque) que o dedo precisa ficar parado para disparar `onHold`. */
+private const val HOLD_MS = 2000L
+
 /**
  * Modifier que transforma um composable em origem de arrasto após toque longo (`long press`).
  * Calcula a posição absoluta do componente na raiz da tela e converte os toques locais
  * para coordenadas globais (`origin + off`) antes de repassar ao `DragHost`.
+ *
+ * Se [onHold] for informado: ao segurar o item PARADO por cerca de 2 s (sem mover além da folga de toque),
+ * o arrasto é cancelado, o aparelho vibra e [onHold] é chamado com o `pkg`. Se o dedo se mover antes disso,
+ * funciona como arrasto normal.
  */
-fun Modifier.dragSource(pkg: String, from: Int, host: DragHost): Modifier = composed {
+fun Modifier.dragSource(
+    pkg: String,
+    from: Int,
+    host: DragHost,
+    onHold: ((String) -> Unit)? = null,
+): Modifier = composed {
     // Posição do canto superior esquerdo deste componente na raiz da tela.
     var origin by remember { mutableStateOf(Offset.Zero) }
+    val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
+    val vc = LocalViewConfiguration.current
+    val slop = vc.touchSlop * 2f
+    val holdAfterLongPress = (HOLD_MS - vc.longPressTimeoutMillis).coerceAtLeast(0L)
+    val holdCb by rememberUpdatedState(onHold)
     this
         .onGloballyPositioned { origin = it.positionInRoot() }
         .pointerInput(pkg, from) {
+            var holdJob: Job? = null
+            var held = false
+            var net = Offset.Zero
             detectDragGesturesAfterLongPress(
-                onDragStart = { off -> host.start(pkg, from, origin + off) },
+                onDragStart = { off ->
+                    held = false
+                    net = Offset.Zero
+                    host.start(pkg, from, origin + off)
+                    if (holdCb != null) {
+                        holdJob = scope.launch {
+                            delay(holdAfterLongPress)
+                            if (!held) {
+                                held = true
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                host.cancel()
+                                holdCb?.invoke(pkg)
+                            }
+                        }
+                    }
+                },
                 onDrag = { change, amount ->
                     // Consome o evento para evitar que listas/containers pai rolem durante o arrasto.
                     change.consume()
-                    host.move(amount)
+                    if (!held) {
+                        net += amount
+                        if (net.getDistance() > slop) holdJob?.cancel()
+                        host.move(amount)
+                    }
                 },
-                onDragEnd = { host.end() },
-                onDragCancel = { host.cancel() },
+                onDragEnd = { holdJob?.cancel(); host.end() },
+                onDragCancel = { holdJob?.cancel(); host.cancel() },
             )
         }
 }

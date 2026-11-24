@@ -56,6 +56,7 @@ fun Drawer(
     realIcons: Boolean,
     onClose: () -> Unit,
     onOpen: (String) -> Unit,
+    onManage: (String) -> Unit = {},
 ) {
     val nc = LocalNc.current
     var q by remember { mutableStateOf("") }
@@ -143,7 +144,7 @@ fun Drawer(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 items(list, key = { it.pkg }) { app ->
-                    AppTile(app, host, realIcons, onOpen)
+                    AppTile(app, host, realIcons, onOpen, onManage)
                 }
             }
         }
@@ -175,12 +176,19 @@ fun Drawer(
 }
 
 @Composable
-private fun AppTile(app: AppInfo, host: DragHost, realIcons: Boolean, onOpen: (String) -> Unit) {
+private fun AppTile(
+    app: AppInfo,
+    host: DragHost,
+    realIcons: Boolean,
+    onOpen: (String) -> Unit,
+    onManage: (String) -> Unit,
+) {
     val nc = LocalNc.current
     val shape = CutShape(9.dp)
     Column(
         Modifier
-            .dragSource(app.pkg, -1, host)
+            // Segurar ~2 s sem mover abre o gerenciamento do app no sistema (o app virtual Config fica de fora).
+            .dragSource(app.pkg, -1, host, onHold = { if (it != CONFIG_PKG) onManage(it) })
             .clickable { if (!host.blockClicks) onOpen(app.pkg) },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(5.dp),
