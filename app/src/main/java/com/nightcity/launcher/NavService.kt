@@ -91,6 +91,7 @@ class NavService : AccessibilityService() {
     private var bar: View? = null
     private var filterView: View? = null
     private var fxView: View? = null
+    private var bannerView: View? = null
     private val hideRun = Runnable { hideBar() }
     private val navKeys = setOf("navPos", "palKey", "guide", "edgeInset")
     private val filterKeys = setOf("filterMode", "filterLevel", "palKey")
@@ -198,14 +199,14 @@ class NavService : AccessibilityService() {
      * Tela ligada: desenha o efeito por cima do app atual.
      * Tela apagada: acende a tela com uma tela preta (OLED), mostra o efeito e apaga de novo.
      */
-    fun playNotifFx(label: String, title: String, force: Boolean = false) {
+    fun playNotifFx(label: String, title: String, force: Boolean = false, key: String? = null) {
         h.post {
             if (!::prefs.isInitialized || !::wm.isInitialized) return@post
             if (!force && (prefs.fxMode == "off" || dndOn())) return@post
             val mode = if (prefs.fxMode == "off") "glitch" else prefs.fxMode
             val pm = getSystemService(POWER_SERVICE) as PowerManager
             if (pm.isInteractive) {
-                if (force || prefs.fxOver) showFxOverlay(mode, label, title)
+                if (force || prefs.fxOver) showFxOverlay(mode, label, title, key)
             } else if (force || prefs.fxWake) {
                 val i = Intent(this, NotifFxActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
@@ -213,6 +214,7 @@ class NavService : AccessibilityService() {
                     .putExtra("label", label)
                     .putExtra("title", title)
                     .putExtra("secs", prefs.fxSecs)
+                    .putExtra("key", key)
                 try {
                     startActivity(i)
                 } catch (e: Exception) {
@@ -222,8 +224,9 @@ class NavService : AccessibilityService() {
         }
     }
 
-    private fun showFxOverlay(mode: String, label: String, title: String) {
+    private fun showFxOverlay(mode: String, label: String, title: String, key: String? = null) {
         removeFx()
+        removeBanner()
         var ref: View? = null
         val v = FxView(this, mode, prefs.currentPalette(), prefs.fxSecs, label, title, false) {
             h.post { if (fxView === ref) removeFx() }
@@ -234,9 +237,9 @@ class NavService : AccessibilityService() {
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT,
         )
         if (Build.VERSION.SDK_INT >= 28) {
@@ -245,9 +248,87 @@ class NavService : AccessibilityService() {
         try {
             wm.addView(v, lp)
             fxView = v
+            if (key != null) showNotifBanner(key, label, title)
         } catch (e: Exception) {
             Log.w("NcNav", "não foi possível desenhar o efeito", e)
         }
+    }
+
+    /**
+     * Cartão tocável que aparece junto do efeito: toque = abre a notificação; ✕ = dispensa.
+     * É uma janela separada e pequena, para o efeito de tela cheia continuar sem interceptar toques.
+     */
+    private fun showNotifBanner(key: String, label: String, title: String) {
+        removeBanner()
+        val item = NotifStore.items.firstOrNull { it.key == key } ?: return
+        val pal = prefs.currentPalette()
+        val d = resources.displayMetrics.density
+        val yel = pal.y.toArgb()
+        val cyan = pal.c.toArgb()
+        val mono = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD)
+
+        fun tv(text: String, sp: Float, color: Int) = android.widget.TextView(this).apply {
+            this.text = text
+            textSize = sp
+            setTextColor(color)
+            typeface = mono
+        }
+
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(tv("> " + label.uppercase(), 11f, cyan))
+            addView(tv(title.ifBlank { item.title.ifBlank { "(sem título)" } }, 14f, android.graphics.Color.WHITE).apply {
+                maxLines = 2
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            })
+        }
+        val close = tv("✕", 16f, yel).apply {
+            setPadding((14 * d).toInt(), (8 * d).toInt(), (6 * d).toInt(), (8 * d).toInt())
+        }
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding((14 * d).toInt(), (8 * d).toInt(), (6 * d).toInt(), (8 * d).toInt())
+            background = GradientDrawable().apply {
+                setColor(0xEE0A0A0F.toInt())
+                setStroke((1.5f * d).toInt(), yel)
+                cornerRadius = 3 * d
+            }
+            addView(col, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            if (item.clearable) addView(close)
+            setOnClickListener {
+                removeBanner()
+                NotifStore.open(this@NavService, item)
+            }
+        }
+        close.setOnClickListener {
+            removeBanner()
+            NotifStore.dismiss(item.key)
+        }
+
+        val dm = resources.displayMetrics
+        val lp = WindowManager.LayoutParams(
+            (dm.widthPixels - 32 * d).toInt(),
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            PixelFormat.TRANSLUCENT,
+        )
+        lp.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+        lp.y = (dm.heightPixels * 0.19f).toInt()
+        try {
+            wm.addView(card, lp)
+            bannerView = card
+            // Fica um pouco além do efeito, para dar tempo de tocar.
+            h.postDelayed({ if (bannerView === card) removeBanner() }, prefs.fxSecs.coerceAtLeast(4) * 1000L + 2500L)
+        } catch (e: Exception) {
+            Log.w("NcNav", "não foi possível mostrar o cartão da notificação", e)
+        }
+    }
+
+    private fun removeBanner() {
+        bannerView?.let { try { wm.removeView(it) } catch (e: Exception) { } }
+        bannerView = null
     }
 
     private fun removeFx() {
@@ -280,9 +361,9 @@ class NavService : AccessibilityService() {
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT,
         )
         if (Build.VERSION.SDK_INT >= 28) {
@@ -316,8 +397,8 @@ class NavService : AccessibilityService() {
     }
 
     private val flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
 
     private fun install() {
         remove()

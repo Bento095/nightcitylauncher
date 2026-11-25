@@ -119,6 +119,16 @@ class Prefs(ctx: Context) {
         get() = sp.getString("wpTarget", "both") ?: "both"
         set(v) { sp.edit().putString("wpTarget", v).apply() }
 
+    /** Animação de progressão do player: 0 = cassete, 1 = CD, 2 = futurista. */
+    var playerStyle: Int
+        get() = sp.getInt("playerStyle", 0).coerceIn(0, PLAYER_STYLE_COUNT - 1)
+        set(v) { sp.edit().putInt("playerStyle", v).apply() }
+
+    /** Player em formato horizontal (girado de lado) ou vertical (animação no topo). */
+    var playerLandscape: Boolean
+        get() = sp.getBoolean("playerLandscape", true)
+        set(v) { sp.edit().putBoolean("playerLandscape", v).apply() }
+
     // --- paletas criadas pelo usuário: "chave|nome|y|c|r|bg|bg2|pn|dim|off;..." (cores em hexadecimal)
     fun customPalettes(): List<NcPalette> {
         val raw = sp.getString("customPalettes", "") ?: ""

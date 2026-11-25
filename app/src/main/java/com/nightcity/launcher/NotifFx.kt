@@ -235,10 +235,14 @@ class NotifFxActivity : Activity() {
             intent.getStringExtra("title").orEmpty(),
             true,
         ) { finishFx() }
-        v.setOnTouchListener { _, e ->
+        val key = intent.getStringExtra("key")
+        v.setOnTouchListener { view, e ->
             if (e.action == MotionEvent.ACTION_DOWN) {
                 touched = true
+                // Tocar na faixa onde o app e o título aparecem abre a notificação.
+                val onLabel = e.y > view.height * 0.38f && e.y < view.height * 0.58f
                 finishFx()
+                if (onLabel && key != null) NotifStore.openByKey(applicationContext, key)
             }
             true
         }

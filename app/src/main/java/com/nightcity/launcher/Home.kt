@@ -119,7 +119,7 @@ fun GlitchClock(onClick: () -> Unit, onLongPress: () -> Unit) {
  * etiqueta do player e botões de anterior, play/pause e próxima.
  */
 @Composable
-fun MediaCard(media: MediaState, onNeedAccess: () -> Unit) {
+fun MediaCard(media: MediaState, onNeedAccess: () -> Unit, onOpenPlayer: () -> Unit = {}) {
     val nc = LocalNc.current
     // Relógio monotônico atualizado a cada segundo para calcular a posição atual da reprodução.
     var now by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
@@ -168,6 +168,12 @@ fun MediaCard(media: MediaState, onNeedAccess: () -> Unit) {
             .clip(CutShape(12.dp))
             .background(nc.y)
             .then(if (!media.hasAccess) Modifier.clickable { onNeedAccess() } else Modifier)
+            // Com uma mídia ativa: toque rápido abre o app que está tocando; segurar abre o player em tela cheia.
+            .then(
+                if (media.hasSession) Modifier.pointerInput(onOpenPlayer) {
+                    detectTapGestures(onTap = { media.openApp() }, onLongPress = { onOpenPlayer() })
+                } else Modifier
+            )
             .padding(8.dp)
     ) {
         Row {
@@ -257,6 +263,7 @@ fun HomeScreen(
     onSettings: () -> Unit,
     onClock: () -> Unit,
     onMediaAccess: () -> Unit,
+    onOpenPlayer: () -> Unit = {},
     onSwipeUp: () -> Unit,
     onSwipeLeft: () -> Unit = {},
     daemons: List<String?>,
@@ -381,7 +388,7 @@ fun HomeScreen(
         ) {
 
             // --- Cartão de mídia ---
-            MediaCard(media, onMediaAccess)
+            MediaCard(media, onMediaAccess, onOpenPlayer)
 
             // --- Previsão do tempo (toque expande/recolhe os slots horários) ---
             Row(
@@ -769,7 +776,7 @@ private fun NotifPanel(
                     }
                 }
                 if (n.clearable) {
-                    Tx("✕", nc.c, 12, true, mono = true, modifier = Modifier.clickable { onDismiss(n.key) }.padding(horizontal = 8.dp, vertical = 2.dp))
+                    Tx("✕", nc.c, 12, true, mono = true, modifier = Modifier.clickable { onDismiss(n.key) }.padding(horizontal = 12.dp, vertical = 8.dp))
                 }
             }
         }

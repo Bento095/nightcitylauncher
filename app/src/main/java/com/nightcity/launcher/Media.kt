@@ -6,6 +6,7 @@ import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.os.SystemClock
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +21,10 @@ class MediaState(private val ctx: Context) {
     var appLabel by mutableStateOf("")
     var playing by mutableStateOf(false)
     var durationMs by mutableLongStateOf(0L)
+    private var actions by mutableLongStateOf(0L)
+
+    /** True quando o app de música aceita busca (ACTION_SEEK_TO) e a faixa tem duração conhecida. */
+    val canSeek: Boolean get() = durationMs > 0 && (actions and PlaybackState.ACTION_SEEK_TO) != 0L
     private var posMs = 0L
     private var stamp = 0L
     private var speed = 1f
@@ -75,6 +80,7 @@ class MediaState(private val ctx: Context) {
         appLabel = ""
         playing = false
         durationMs = 0L
+        actions = 0L
         posMs = 0L
     }
 
@@ -114,6 +120,7 @@ class MediaState(private val ctx: Context) {
         posMs = s?.position ?: 0L
         stamp = s?.lastPositionUpdateTime ?: 0L
         speed = s?.playbackSpeed ?: 1f
+        actions = s?.actions ?: 0L
     }
 
     /** Posição atual da faixa em ms (estimada entre as atualizações do player). */
@@ -125,6 +132,28 @@ class MediaState(private val ctx: Context) {
     fun playPause() {
         val t = controller?.transportControls ?: return
         if (playing) t.pause() else t.play()
+    }
+
+    /** Pula para [ms] na faixa e já atualiza a posição estimada, sem esperar o player responder. */
+    fun seekTo(ms: Long) {
+        if (!canSeek) return
+        val t = ms.coerceIn(0L, durationMs)
+        controller?.transportControls?.seekTo(t)
+        posMs = t
+        stamp = SystemClock.elapsedRealtime()
+    }
+
+    /** Abre o app que está tocando: a tela do player dele (sessionActivity) ou, na falta dela, o app. */
+    fun openApp() {
+        val c = controller ?: return
+        val pi = c.sessionActivity
+        if (pi != null) {
+            try {
+                pi.send()
+                return
+            } catch (e: Exception) { }
+        }
+        launchApp(ctx, c.packageName)
     }
 
     fun next() { controller?.transportControls?.skipToNext() }

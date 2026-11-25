@@ -1,7 +1,10 @@
 package com.nightcity.launcher
 
+import android.app.ActivityOptions
 import android.app.Notification
 import android.app.PendingIntent
+import android.content.Context
+import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import androidx.compose.runtime.mutableStateListOf
@@ -15,6 +18,7 @@ class NotifItem(
     val time: Long,
     val intent: PendingIntent?,
     val clearable: Boolean,
+    val autoCancel: Boolean = false,
 )
 
 /** Lista das notificações ativas, preenchida pelo serviço de leitura de notificações. */
@@ -42,7 +46,7 @@ object NotifStore {
         } catch (e: Exception) {
             sbn.packageName
         }
-        NavState.service?.playNotifFx(app, title)
+        NavState.service?.playNotifFx(app, title, key = sbn.key)
     }
 
     fun reload(s: NotificationListenerService) {
@@ -66,7 +70,10 @@ object NotifStore {
             } catch (e: Exception) {
                 sbn.packageName
             }
-            out.add(NotifItem(sbn.key, sbn.packageName, app, title, text, sbn.postTime, n.contentIntent, sbn.isClearable))
+            out.add(NotifItem(
+                sbn.key, sbn.packageName, app, title, text, sbn.postTime, n.contentIntent, sbn.isClearable,
+                (n.flags and Notification.FLAG_AUTO_CANCEL) != 0,
+            ))
         }
         synchronized(seen) {
             seen.clear()
@@ -74,6 +81,37 @@ object NotifStore {
         }
         items.clear()
         items.addAll(out)
+    }
+
+    /**
+     * Abre a notificação: dispara o PendingIntent dela (ou o app, se não houver) e, quando a notificação
+     * é do tipo "some ao tocar" (AUTO_CANCEL), remove-a também daqui, já que fora da barra do sistema
+     * ninguém faz isso por ela.
+     */
+    fun open(ctx: Context, n: NotifItem): Boolean {
+        var ok = false
+        val pi = n.intent
+        if (pi != null) {
+            try {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    val o = ActivityOptions.makeBasic()
+                    // 1 = MODE_BACKGROUND_ACTIVITY_ALLOWED (a constante não aparece em alguns compileSdk)
+                    o.setPendingIntentBackgroundActivityStartMode(1)
+                    pi.send(ctx, 0, null, null, null, null, o.toBundle())
+                } else {
+                    pi.send()
+                }
+                ok = true
+            } catch (e: Exception) { }
+        }
+        if (!ok) return launchApp(ctx, n.pkg)
+        if (n.autoCancel && n.clearable) dismiss(n.key)
+        return true
+    }
+
+    fun openByKey(ctx: Context, key: String): Boolean {
+        val n = items.firstOrNull { it.key == key } ?: return false
+        return open(ctx, n)
     }
 
     fun dismiss(key: String) {

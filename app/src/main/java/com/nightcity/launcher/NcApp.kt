@@ -9,6 +9,8 @@ import android.content.pm.PackageManager
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -55,7 +57,7 @@ import kotlin.math.roundToInt
  * - DRAWER: gaveta completa de aplicativos instalados
  * - SETTINGS: tela de configurações de tema, navegação, notificações, filtros e efeitos
  */
-enum class Scr { HOME, DRAWER, SETTINGS, VAULT }
+enum class Scr { HOME, DRAWER, SETTINGS, VAULT, PLAYER }
 
 // Helper rápido para checar se uma permissão perigosa/runtime está concedida no contexto atual.
 private fun granted(ctx: android.content.Context, perm: String) =
@@ -152,6 +154,8 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
     var recents by remember { mutableStateOf(prefs.recents()) }
     var daemons by remember { mutableStateOf(prefs.daemons()) }
     var vault by remember { mutableStateOf(prefs.vaultEntries()) }
+    var playerStyle by remember { mutableStateOf(prefs.playerStyle) }
+    var playerLandscape by remember { mutableStateOf(prefs.playerLandscape) }
     val homeScroll = rememberScrollState()
 
     // Abre um aplicativo pelo packageName; se for o app virtual de config, abre `Scr.SETTINGS`,
@@ -394,6 +398,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 onSettings = { scr = Scr.SETTINGS },
                 onClock = { openClock() },
                 onMediaAccess = { safeStart(ctx, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
+                onOpenPlayer = { scr = Scr.PLAYER },
                 onSwipeUp = { scr = Scr.DRAWER },
                 onSwipeLeft = { scr = Scr.VAULT },
                 daemons = daemons,
@@ -407,13 +412,7 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                 notifs = NotifStore.items,
                 notifStyle = notifStyle,
                 notifMax = notifMax,
-                onNotifOpen = { n ->
-                    try {
-                        n.intent?.send() ?: launchApp(ctx, n.pkg)
-                    } catch (e: Exception) {
-                        launchApp(ctx, n.pkg)
-                    }
-                },
+                onNotifOpen = { n -> NotifStore.open(ctx, n) },
                 onNotifDismiss = { NotifStore.dismiss(it) },
                 onNotifClear = { NotifStore.dismissAll() },
             )
@@ -482,6 +481,22 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
                         prefs.saveVaultEntries(l)
                     },
                     onBackHome = { scr = Scr.HOME },
+                )
+            }
+
+            // 4c. Player de mídia em tela cheia (desenhado de lado): segurar o cartão de mídia na Home abre
+            AnimatedVisibility(
+                visible = scr == Scr.PLAYER,
+                enter = fadeIn(),
+                exit = fadeOut(),
+            ) {
+                PlayerScreen(
+                    media = media,
+                    style = playerStyle,
+                    landscape = playerLandscape,
+                    onStyle = { playerStyle = it; prefs.playerStyle = it },
+                    onToggleOrientation = { playerLandscape = !playerLandscape; prefs.playerLandscape = playerLandscape },
+                    onClose = { scr = Scr.HOME },
                 )
             }
 
