@@ -53,6 +53,8 @@ class SettingsState(
     val palKey: String,
     val custom: List<NcPalette>,
     val navPos: String,
+    val recSide: String,
+    val recStyle: Int,
     val guide: Boolean,
     val iconMode: String,
     val edgeInset: Int,
@@ -85,6 +87,8 @@ class SettingsActions(
     val onSavePalette: (NcPalette) -> Unit,
     val onDeletePalette: (String) -> Unit,
     val onPos: (String) -> Unit,
+    val onRecSide: (String) -> Unit,
+    val onRecStyle: (Int) -> Unit,
     val onGuide: (Boolean) -> Unit,
     val onIconMode: (String) -> Unit,
     val onInset: (Int) -> Unit,
@@ -532,6 +536,19 @@ fun SettingsScreen(s: SettingsState, a: SettingsActions) {
             Tx("AFASTAMENTO DA BORDA (dp)", nc.dim, 10, mono = true)
             Opts(listOf("0" to 0, "16" to 16, "32" to 32, "48" to 48), s.edgeInset, a.onInset)
             Note("Aumente se a faixa de gesto brigar com o gesto do sistema. Nas laterais a barra fica um pouco acima do meio da tela.")
+        }
+
+        // Segunda faixa de gesto, na lateral oposta, que abre os apps recentes em cascata ou dial.
+        Fold(
+            "ATALHO DE RECENTES",
+            startOpen = false,
+            summary = when (s.recSide) { "off" -> "DESLIGADO"; "l" -> "ESQUERDA"; "r" -> "DIREITA"; else -> "AUTO" },
+        ) {
+            Tx("LADO", nc.dim, 10, mono = true)
+            Opts(listOf("AUTO" to "auto", "ESQ." to "l", "DIR." to "r", "DESLIG." to "off"), s.recSide, a.onRecSide)
+            Tx("ESTILO", nc.dim, 10, mono = true)
+            Opts(listOf("CASCATA" to 0, "DIAL" to 1), s.recStyle, a.onRecStyle)
+            Note("Deslize para dentro a partir da borda para abrir. AUTO usa o lado oposto ao da barra de navegação (com a barra embaixo, fica à esquerda). Toque num app para abrir, segure para tirar da lista. Mostra os apps abertos pelo launcher.")
         }
 
         // Alterna entre ícones monocromáticos/monogramas estilizados e ícones originais dos apps.

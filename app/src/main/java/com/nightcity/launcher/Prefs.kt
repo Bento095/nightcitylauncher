@@ -13,6 +13,33 @@ class Prefs(ctx: Context) {
         get() = sp.getString("navPos", "b") ?: "b"
         set(v) { sp.edit().putString("navPos", v).apply() }
 
+    /** Atalho de recentes: "auto" (lado oposto à barra; barra embaixo = esquerda), "l", "r" ou "off". */
+    var recSide: String
+        get() = sp.getString("recSide", "auto") ?: "auto"
+        set(v) { sp.edit().putString("recSide", v).apply() }
+
+    /** Estilo da janela de recentes: 0 = cascata, 1 = dial. */
+    var recStyle: Int
+        get() {
+            // Converte uma única vez os índices antigos: leque/cascata -> cascata; dial -> dial.
+            if (!sp.getBoolean("recStyleMigratedV2", false)) {
+                val oldStyle = sp.getInt("recStyle", 0)
+                val migratedStyle = if (oldStyle == 2) 1 else 0
+                sp.edit()
+                    .putInt("recStyle", migratedStyle)
+                    .putBoolean("recStyleMigratedV2", true)
+                    .apply()
+                return migratedStyle
+            }
+            return sp.getInt("recStyle", 0).coerceIn(0, 1)
+        }
+        set(v) {
+            sp.edit()
+                .putInt("recStyle", v.coerceIn(0, 1))
+                .putBoolean("recStyleMigratedV2", true)
+                .apply()
+        }
+
     var palKey: String
         get() = sp.getString("palKey", "night") ?: "night"
         set(v) { sp.edit().putString("palKey", v).apply() }

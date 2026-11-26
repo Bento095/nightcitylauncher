@@ -26,6 +26,7 @@ import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.widget.LinearLayout
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.drawable.toBitmap
 
 fun navServiceEnabled(ctx: Context): Boolean {
     val s = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
@@ -92,8 +93,13 @@ class NavService : AccessibilityService() {
     private var filterView: View? = null
     private var fxView: View? = null
     private var bannerView: View? = null
+    private var recTrigger: View? = null
+    private var recView: View? = null
+    private var rsx = 0f
+    private var rarmed = false
+    private val recHideRun = Runnable { hideRecents() }
     private val hideRun = Runnable { hideBar() }
-    private val navKeys = setOf("navPos", "palKey", "guide", "edgeInset")
+    private val navKeys = setOf("navPos", "palKey", "guide", "edgeInset", "recSide")
     private val filterKeys = setOf("filterMode", "filterLevel", "palKey")
     private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key != null && key in navKeys) h.post { install() }
@@ -116,7 +122,7 @@ class NavService : AccessibilityService() {
 
     private fun ensureTrigger() {
         if (!::wm.isInitialized || !::prefs.isInitialized) return
-        if (trigger?.isAttachedToWindow == true) return
+        if (trigger?.isAttachedToWindow == true && (recSide() == null || recTrigger?.isAttachedToWindow == true)) return
         if (System.currentTimeMillis() - lastInstall < 1500) return
         Log.d("NcNav", "faixa de gesto ausente: recriando")
         install()
@@ -394,6 +400,11 @@ class NavService : AccessibilityService() {
         bar = null
         trigger?.let { try { wm.removeView(it) } catch (e: Exception) { } }
         trigger = null
+        recTrigger?.let { try { wm.removeView(it) } catch (e: Exception) { } }
+        recTrigger = null
+        h.removeCallbacks(recHideRun)
+        recView?.let { try { wm.removeView(it) } catch (e: Exception) { } }
+        recView = null
     }
 
     private val flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -424,6 +435,7 @@ class NavService : AccessibilityService() {
         } catch (e: Exception) {
             Log.w("NcNav", "não foi possível desenhar a faixa de gesto", e)
         }
+        installRecents()
     }
 
     private fun onTouch(e: MotionEvent): Boolean {
@@ -451,6 +463,151 @@ class NavService : AccessibilityService() {
             MotionEvent.ACTION_CANCEL -> armed = false
         }
         return true
+    }
+
+    // ---------------------------------------------------------------- atalho de recentes
+
+    /** Lado do atalho de recentes: "l", "r" ou null (desligado). Automático = oposto à barra; barra embaixo = esquerda. */
+    private fun recSide(): String? = when (prefs.recSide) {
+        "off" -> null
+        "l" -> "l"
+        "r" -> "r"
+        else -> if (prefs.navPos == "l") "r" else "l"
+    }
+
+    private fun installRecents() {
+        val side = recSide() ?: return
+        val nc = prefs.currentPalette()
+        val v = EdgeView(this, nc.c.toArgb(), prefs.guide, side)
+        v.setOnTouchListener { _, e -> onRecTouch(e, side) }
+        val hh = dp(220)
+        val lp = WindowManager.LayoutParams(
+            dp(26), hh, WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY, flags, PixelFormat.TRANSLUCENT,
+        )
+        lp.gravity = (if (side == "l") Gravity.START else Gravity.END) or Gravity.TOP
+        lp.x = dp(prefs.edgeInset)
+        // se a barra de navegação estiver no mesmo lado, este atalho fica logo abaixo dela
+        lp.y = sideTop(hh) + if (prefs.navPos == side) hh + dp(8) else 0
+        try {
+            wm.addView(v, lp)
+            recTrigger = v
+        } catch (e: Exception) {
+            Log.w("NcNav", "não foi possível desenhar a faixa de recentes", e)
+        }
+    }
+
+    private fun onRecTouch(e: MotionEvent, side: String): Boolean {
+        when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                rsx = e.rawX
+                rarmed = true
+            }
+            MotionEvent.ACTION_MOVE -> if (rarmed) {
+                val d = if (side == "l") e.rawX - rsx else rsx - e.rawX
+                if (d > dp(28)) {
+                    rarmed = false
+                    showRecents(side)
+                }
+            }
+            MotionEvent.ACTION_UP -> if (rarmed) {
+                rarmed = false
+                if (recView != null) hideRecents() else showRecents(side)
+            }
+            MotionEvent.ACTION_CANCEL -> rarmed = false
+        }
+        return true
+    }
+
+    private fun agoText(ms: Long): String {
+        val m = ms / 60000L
+        return when {
+            m < 1 -> "AGORA"
+            m < 60 -> "$m MIN"
+            m < 1440 -> "${m / 60} H"
+            else -> "${m / 1440} D"
+        }
+    }
+
+    /** Apps recentes do launcher (até 8), já com nome, tempo e ícone; ignora os que não existem mais. */
+    private fun recentItems(): List<RecItem> {
+        val pm = packageManager
+        val now = System.currentTimeMillis()
+        val real = prefs.iconMode == "real"
+        val out = ArrayList<RecItem>()
+        for ((pkg, t) in prefs.recents()) {
+            if (pkg == CONFIG_PKG || pkg == packageName) continue
+            if (pm.getLaunchIntentForPackage(pkg) == null) continue
+            @Suppress("DEPRECATION")
+            val label = try {
+                pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
+            } catch (e: Exception) {
+                continue
+            }
+            val icon = if (real) {
+                try { pm.getApplicationIcon(pkg).toBitmap(96, 96) } catch (e: Exception) { null }
+            } else null
+            out.add(RecItem(pkg, label, monogram(label), agoText(now - t), icon))
+            if (out.size >= 8) break
+        }
+        return out
+    }
+
+    private fun showRecents(side: String) {
+        if (recView != null) return
+        hideBar()
+        val nc = prefs.currentPalette()
+        val col = RecColors(nc.bg.toArgb(), nc.y.toArgb(), nc.c.toArgb(), nc.dim.toArgb(), nc.pn.toArgb())
+        val v = RecentsView(
+            this, recentItems(), col, side == "l", prefs.recStyle,
+            onPick = { pkg ->
+                hideRecents()
+                openFromRecents(pkg)
+            },
+            onRemove = { pkg -> prefs.saveRecents(prefs.recents().filter { it.first != pkg }) },
+            onClear = { prefs.saveRecents(emptyList()) },
+            onClose = { hideRecents() },
+            onStyle = { st -> prefs.recStyle = st },
+            onActivity = {
+                h.removeCallbacks(recHideRun)
+                h.postDelayed(recHideRun, 15000)
+            },
+        )
+        val lp = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT,
+        )
+        if (Build.VERSION.SDK_INT >= 28) {
+            lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+        try {
+            wm.addView(v, lp)
+            recView = v
+            h.postDelayed(recHideRun, 15000)
+        } catch (e: Exception) {
+            Log.w("NcNav", "não foi possível mostrar os recentes", e)
+        }
+    }
+
+    private fun hideRecents() {
+        h.removeCallbacks(recHideRun)
+        val v = recView ?: return
+        recView = null
+        v.animate().alpha(0f).setDuration(150).withEndAction {
+            try { wm.removeView(v) } catch (e: Exception) { }
+        }.start()
+    }
+
+    /** Abre o app escolhido e o traz para a frente da lista de recentes. */
+    private fun openFromRecents(pkg: String) {
+        if (launchApp(this, pkg)) {
+            val r = (listOf(pkg to System.currentTimeMillis()) + prefs.recents().filter { it.first != pkg }).take(10)
+            prefs.saveRecents(r)
+        }
     }
 
     private fun keepBar() {

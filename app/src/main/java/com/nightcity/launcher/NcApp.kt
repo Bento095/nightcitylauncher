@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
@@ -77,6 +78,8 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
     // --- Estados reativos espelhando as configurações salvas em `Prefs` ---
     var palKey by remember { mutableStateOf(prefs.palKey) }
     var navPos by remember { mutableStateOf(prefs.navPos) }
+    var recSide by remember { mutableStateOf(prefs.recSide) }
+    var recStyle by remember { mutableStateOf(prefs.recStyle) }
     var guide by remember { mutableStateOf(prefs.guide) }
     var iconMode by remember { mutableStateOf(prefs.iconMode) }
     var edgeInset by remember { mutableStateOf(prefs.edgeInset) }
@@ -152,6 +155,18 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
     // --- Listas persistidas de atalhos: Dock, Recentes (Quickhacks) e Daemons ---
     var dock by remember { mutableStateOf(prefs.dock()) }
     var recents by remember { mutableStateOf(prefs.recents()) }
+
+    // O atalho de recentes (NavService) também mexe na lista e no estilo: espelha aqui as mudanças.
+    DisposableEffect(Unit) {
+        val l = SharedPreferences.OnSharedPreferenceChangeListener { _, k ->
+            when (k) {
+                "recents" -> recents = prefs.recents()
+                "recStyle" -> recStyle = prefs.recStyle
+            }
+        }
+        prefs.sp.registerOnSharedPreferenceChangeListener(l)
+        onDispose { prefs.sp.unregisterOnSharedPreferenceChangeListener(l) }
+    }
     var daemons by remember { mutableStateOf(prefs.daemons()) }
     var vault by remember { mutableStateOf(prefs.vaultEntries()) }
     var playerStyle by remember { mutableStateOf(prefs.playerStyle) }
@@ -304,6 +319,8 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
         palKey = palKey,
         custom = customPals,
         navPos = navPos,
+        recSide = recSide,
+        recStyle = recStyle,
         guide = guide,
         iconMode = iconMode,
         edgeInset = edgeInset,
@@ -345,6 +362,8 @@ fun NcRoot(app: AppState, requestPerms: (Array<String>) -> Unit) {
             }
         },
         onPos = { navPos = it; prefs.navPos = it },
+        onRecSide = { recSide = it; prefs.recSide = it },
+        onRecStyle = { recStyle = it; prefs.recStyle = it },
         onGuide = { guide = it; prefs.guide = it },
         onIconMode = { iconMode = it; prefs.iconMode = it },
         onInset = { edgeInset = it; prefs.edgeInset = it },
