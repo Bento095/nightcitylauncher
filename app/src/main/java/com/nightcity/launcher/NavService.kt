@@ -416,7 +416,7 @@ class NavService : AccessibilityService() {
         val nc = prefs.currentPalette()
         val pos = prefs.navPos
         val inset = dp(prefs.edgeInset)
-        val v = EdgeView(this, nc.y.toArgb(), prefs.guide, pos)
+        val v = EdgeView(this, nc.c.toArgb(), prefs.guide, pos)
         v.setOnTouchListener { _, e -> onTouch(e) }
         val w = if (pos == "b") dp(220) else dp(26)
         val hh = if (pos == "b") dp(28) else dp(220)
@@ -478,7 +478,7 @@ class NavService : AccessibilityService() {
     private fun installRecents() {
         val side = recSide() ?: return
         val nc = prefs.currentPalette()
-        val v = EdgeView(this, nc.c.toArgb(), prefs.guide, side)
+        val v = EdgeView(this, nc.r.toArgb(), prefs.guide, side)
         v.setOnTouchListener { _, e -> onRecTouch(e, side) }
         val hh = dp(220)
         val lp = WindowManager.LayoutParams(
@@ -556,7 +556,7 @@ class NavService : AccessibilityService() {
         if (recView != null) return
         hideBar()
         val nc = prefs.currentPalette()
-        val col = RecColors(nc.bg.toArgb(), nc.y.toArgb(), nc.c.toArgb(), nc.dim.toArgb(), nc.pn.toArgb())
+        val col = RecColors(nc.bg.toArgb(), nc.r.toArgb(), nc.c.toArgb(), nc.dim.toArgb(), nc.pn.toArgb())
         val v = RecentsView(
             this, recentItems(), col, side == "l", prefs.recStyle,
             onPick = { pkg ->
@@ -632,7 +632,7 @@ class NavService : AccessibilityService() {
             }
         }
         for (k in 0..2) {
-            val b = NavBtn(this, k, nc.y.toArgb(), nc.bg.toArgb())
+            val b = NavBtn(this, k, nc.c.toArgb(), nc.bg.toArgb())
             b.layoutParams = LinearLayout.LayoutParams(dp(62), dp(44)).apply { setMargins(dp(3), dp(3), dp(3), dp(3)) }
             b.setOnClickListener {
                 when (k) {
